@@ -26,13 +26,19 @@ define_language! {
         Symbol(egg::Symbol),
     }
 }
+
+#[derive(Clone)]
 #[derive(Default)]
-pub struct ConstantFold;
+pub struct ConstantFold; /* {
+    pub blacklist_nodes : HashSet<Vec<Vec<VecLang>>>,
+    pub precedent_map : HashMap<(VecLang, Id), HashSet<Id>>,
+
+} */
 
 pub type Egraph = egg::EGraph<VecLang, ConstantFold>;
 
 impl Analysis<VecLang> for ConstantFold {
-    type Data = Option<i32>;
+    type Data = Option<i32>;    
     fn make(egraph: &Egraph, enode: &VecLang) -> Self::Data {
         let x = |i: &Id| egraph[*i].data.as_ref();
         Some(match enode {
@@ -46,27 +52,28 @@ impl Analysis<VecLang> for ConstantFold {
         })
     }
 
-    fn merge(&self, to: &mut Self::Data, from: Self::Data) -> bool {
-        match (to.as_mut(), &from) {
-            (None, Some(_)) => true,
-            (_, _) => false,
-        }
+    fn merge(&mut self, to: &mut Self::Data, from: Self::Data) -> DidMerge {
+        egg::merge_max(to, from)
     }
     fn modify(egraph: &mut Egraph, id: Id) {
         let class = &mut egraph[id];
         if let Some(c) = class.data.clone() {
             let added = egraph.add(VecLang::Num(c.clone()));
-            let (id, _did_something) = egraph.union(id, added);
+            let merged = egraph.union(id, added);
+            if merged {
+                egraph.rebuild();
+            }
             // to not prune, comment this out
-            egraph[id].nodes.retain(|n| n.is_leaf());
+            //egraph[id].nodes.retain(|n| n.is_leaf());
 
-            assert!(
-                !egraph[id].nodes.is_empty(),
-                "empty eclass! {:#?}",
-                egraph[id]
-            );
-            #[cfg(debug_assertions)]
-            egraph[id].assert_unique_leaves();
+            // assert!(
+            //     !egraph[id].nodes.is_empty(),
+            //     "empty eclass! {:#?}",
+            //     egraph[id]
+            // );
+            // #[cfg(debug_assertions)]
+            // egraph[id].assert_unique_leaves();
         }
     }
 }
+

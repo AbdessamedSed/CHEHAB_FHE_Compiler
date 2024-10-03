@@ -26,6 +26,15 @@ add_subdirectory(benchmarks/l2_distance)
 add_subdirectory(benchmarks/lin_reg)
 add_subdirectory(benchmarks/matrix_mul)
 add_subdirectory(benchmarks/poly_reg)
+add_subdirectory(benchmarks/unstruct_benc)
+add_subdirectory(benchmarks/dot_product)
+add_subdirectory(benchmarks/gy_kernel)
+add_subdirectory(benchmarks/hamming_dist)
+# add_subdirectory(benchmarks/roberts_cross)
+
+
+
+
 
 set(SOURCE_FILE_1 ${CMAKE_SOURCE_DIR}/benchmarks/script.py)
 set(DESTINATION_FILE_1 ${CMAKE_SOURCE_DIR}/build/benchmarks/script.py)

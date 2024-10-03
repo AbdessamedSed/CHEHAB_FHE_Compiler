@@ -8,67 +8,47 @@ using namespace fheco;
 #include <string>
 #include <vector>
 
-#define height 3
-#define width 3
+#define height 4
+#define width 4
 
 void fhe()
 {
-  size_t size = (height + 1) * (width + 2) + width + 1 + 6 + 1;
-  std::vector<Ciphertext> v(size);
-  std::vector<Ciphertext> output(size);
-  for (int i = 0; i < size; i++)
+  std::vector<std::vector<Ciphertext>> img =
+    std::vector<std::vector<Ciphertext>>(height, std::vector<Ciphertext>(width));
+  std::vector<std::vector<Ciphertext>> output(height, std::vector<Ciphertext>(width));
+  for (int i = 0; i < height; i++)
   {
-    v[i] = Ciphertext("v_" + std::to_string(i));
-    output[i] = v[i];
-  }
-  for (int i = 0; i < height + 2; i++)
-  {
-
-    for (int j = 0; j < width + 2; j++)
+    for (int j = 0; j < width; j++)
     {
-      int ii = i * (width + 2) + j;
-      Ciphertext temp_out = encrypt(0);
-
-      // Top left
-      if (ii - 6 > 0)
-      {
-        temp_out -= v[ii - 6];
-      }
-      // Top right
-      if (ii - 4 > 0)
-      {
-        temp_out += v[ii - 4];
-      }
-
-      // Middle left
-      if (ii - 1 > 0)
-      {
-        temp_out = temp_out - 2 * v[ii - 1];
-      }
-      // Middle right
-      temp_out = temp_out + 2 * v[ii + 1];
-
-      // Bottom left
-      temp_out = temp_out - v[ii + 4];
-
-      // Bottom right
-      temp_out = temp_out + v[ii + 6];
-      output[ii] = temp_out;
-      // cout << result[ii] << " ";
-      // cout << temp_out << " ";
+      img[i][j] = Ciphertext("img_" + std::to_string(i) + std::to_string(j));
     }
-
-    /*
-      you can do something like
-      for(int i = 0; i < poly_modulus_degree; i++)
-        pt_result[i].set_output("o" + std::string(i))
-    */
-    // cout << endl;
   }
 
-  for (int i = 0; i < size; i++)
+  for (int i = 0; i < height; ++i)
   {
-    output[i].set_output("output_" + std::to_string(i));
+    for (int j = 0; j < width; ++j)
+    {
+      if (i == 0 || i == height - 1 || j == 0 || j == width - 1)
+      {
+        output[i][j] = img[i][j];
+        continue;
+      }
+      output[i][j] = img[i - 1][j + 1] + // Top left
+                     2 * img[i + 0][j + 1] + // Top center
+                     img[i + 1][j + 1] + // Top right
+                     0 * img[i + 0][j + 0] - // Current pixel
+                     img[i - 1][j - 1] - // Low left
+                     2 * img[i + 0][j - 1] - // Low center
+                     img[i + 1][j - 1]; // Low right
+    }
+  }
+
+  for (int i = 0; i < height; i++)
+  {
+    for (int j = 0; j < width; j++)
+    {
+      output[i][j].set_output("output_" + std::to_string(i) + std::to_string(j));
+    }
   }
 }
 
@@ -82,7 +62,7 @@ int main(int argc, char **argv)
   if (argc > 1)
     vectorized = stoi(argv[1]);
 
-  int window = 0;
+  int window = 1;
   if (argc > 2)
     window = stoi(argv[2]);
 

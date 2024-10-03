@@ -1,6 +1,8 @@
 extern crate clap;
 use clap::{App, Arg};
 use egraphslib::*;
+use std::time::Instant;
+
 fn main() {
     let matches = App::new("Rewriter")
         .arg(
@@ -33,7 +35,9 @@ fn main() {
         .parse()
         .expect("Number must be a valid usize");
 
-    // Rules to disable flags
+    // Record the start time
+    let start_time = Instant::now();
+
     // Run rewriter
     eprintln!(
         "Running egg with timeout {:?}s, width: {:?}",
@@ -41,6 +45,11 @@ fn main() {
     );
     let (cost, best) = rules::run(&prog, timeout, vector_width);
 
+    // Record the end time
+    let duration = start_time.elapsed();
+
+    // Print the results
     println!("{}", best.to_string()); /* Pretty print with width 80 */
     eprintln!("\nCost: {}", cost);
+    eprintln!("Time taken: {:?} to finish", duration);
 }

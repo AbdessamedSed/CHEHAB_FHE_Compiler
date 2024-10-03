@@ -10,7 +10,7 @@ using namespace fheco;
 
 void fhe()
 {
-  size_t size = 4;
+  size_t size = 256;
   std::vector<Ciphertext> v1(size);
   std::vector<Ciphertext> v2(size);
   std::vector<Ciphertext> output(size);
@@ -39,7 +39,7 @@ int main(int argc, char **argv)
   if (argc > 1)
     vectorized = stoi(argv[1]);
 
-  int window = 0;
+  int window = 1;
   if (argc > 2)
     window = stoi(argv[2]);
 
