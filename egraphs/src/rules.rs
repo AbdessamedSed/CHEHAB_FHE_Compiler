@@ -592,7 +592,7 @@ pub fn rules(vector_width: usize) -> Vec<Rewrite<VecLang, ConstantFold>> {
     rules.extend(assoc);
 
     rules.extend(vec![
-        //  Basic associativity/commutativity/identities 8102
+        //  Basic associativity/commutativity/identities 8102 / expensive rules
         // rw!("commute-Add"; "(+ ?a ?b)" => "(+ ?b ?a)"),
         // rw!("commute-Mul"; "(* ?a ?b)" => "(* ?b ?a)"),
         // rw!("assoc-Add"; "(+ (+ ?a ?b) ?c)" => "(+ ?a ( + ?b ?c))"),
