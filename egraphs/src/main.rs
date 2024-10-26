@@ -17,6 +17,24 @@ fn main() {
                 .required(true)
                 .index(2),
         )
+        .arg(
+            Arg::with_name("rule_filtering")
+            .help("Boolean to enable or disable rule filtering before each iteartion when building the e-graph")
+            .required(false)
+            .index(3)
+        )
+        .arg(
+            Arg::with_name("sorting")
+            .help("Sort the eclasses before calculating the cost")
+            .required(false)
+            .index(4)
+        )
+        .arg(
+            Arg::with_name("exp_rules")
+            .help("Boolean to enable or disable the expensive rules")
+            .required(false)
+            .index(5)
+        )
         .get_matches();
 
     use std::{env, fs};
@@ -35,15 +53,33 @@ fn main() {
         .parse()
         .expect("Number must be a valid usize");
 
+    let rule_filtering = matches
+        .value_of("rule_filtering")
+        .unwrap_or("false")
+        .parse::<bool>()
+        .expect("rule_filtering must be a valid boolean");
+
+    let sorting = matches
+        .value_of("sorting")
+        .unwrap_or("false")
+        .parse::<bool>()
+        .expect("sorting must be a valid boolean");
+
+    let exp_rules = matches
+        .value_of("exp-rules")
+        .unwrap_or("false")
+        .parse::<bool>()
+        .expect("exp-rules must be a valid boolean");
+
     // Record the start time
     let start_time = Instant::now();
 
     // Run rewriter
     eprintln!(
-        "Running egg with timeout {:?}s, width: {:?}",
-        timeout, vector_width
+        "Running egg with timeout {:?}s, width: {:?}, rule_filtering: {:?}, sorting: {:?}, exp-rules: {:?}",
+        timeout, vector_width, rule_filtering, sorting, exp_rules
     );
-    let (cost, best) = rules::run(&prog, timeout, vector_width);
+    let (cost, best) = rules::run(&prog, timeout, vector_width, rule_filtering, sorting, exp_rules);
 
     // Record the end time
     let duration = start_time.elapsed();

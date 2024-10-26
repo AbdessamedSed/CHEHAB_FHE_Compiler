@@ -6,6 +6,9 @@ use std::{
 use std::time::Instant;
 use std::vec::Vec;
 use crate::cost;
+use std::time::Duration;
+use log::debug;
+
 pub struct Extractor<'a, CF: cost::CostFunction<L>, L: Language, N: Analysis<L>> {
     cost_function: CF,
     costs: HashMap<Id, (usize, L)>,
@@ -24,6 +27,7 @@ where
         egraph: &'a EGraph<L, N>,
         cost_function: CF,
         root: Id,
+        sorting: bool,
         ) -> Self
     {
             let costs = HashMap::default();
@@ -33,14 +37,18 @@ where
                 cost_function,
             };
 
-            let start = Instant::now();
-            let ordered = Self::topological_sort_with_max_order(egraph, root);
-            let end = start.elapsed();
+            let mut oredered_eclasses = Vec::new();
+            if sorting {
+                let start_sorting = Instant::now();
+                oredered_eclasses = Self::semi_topological_sort(egraph, root);
+                let end_sorting = start_sorting.elapsed();
 
-            eprintln!("time to sort is : {:?}", end);
-            // eprintln!("the order is : {:?}", ordered);
+                debug!("time to sort is : {:?}", end_sorting);
+                extractor.find_costs(oredered_eclasses);
+            } else {
+                extractor.find_costs(oredered_eclasses);
+            }
 
-            extractor.find_costs(ordered);
             extractor
     }
 
@@ -73,7 +81,8 @@ where
         (expr.add(node), best_cost)
     }
 
-    pub fn topological_sort_with_max_order(egraph: &'a EGraph<L, N>, root: Id) -> Vec<(Id, usize)> {
+    pub fn semi_topological_sort(egraph: &'a EGraph<L, N>, root: Id) -> Vec<(Id, usize)> {
+
         let mut order_map: HashMap<Id, usize> = HashMap::new();  // Store the order of each e-class
         let mut stack: Vec<(Id, usize)> = vec![(root, 0)];  // Stack to simulate DFS traversal (ID, current order)
         
@@ -84,7 +93,6 @@ where
             // If this eclass has been visited before, skip it
             if visited.contains(&id) {
                 continue;
-                // eprintln!("visited: {:?} with order : {:?}", id, current_order);
             }
     
             visited.insert(id);  // Mark this eclass as visited
@@ -154,9 +162,14 @@ where
             }
     
             let mut shared_sub_classes: HashSet<Id> = HashSet::new();
+
+            let start = Instant::now();
     
             // Compare all pairs of children
             for (i, &id_i) in children.iter().enumerate() {
+
+                let sub_classes_i = map.get(&id_i).unwrap();
+                
                 for &id_j in children.iter().skip(i + 1) {
     
                     // If both children are the same, subtract the cost of one child
@@ -164,7 +177,6 @@ where
                         return Some(cost - costs[&eg.find(id_i)].0);
                     }
     
-                    let sub_classes_i = map.get(&id_i).unwrap();
                     let sub_classes_j = map.get(&id_j).unwrap();
     
                     // If one child belongs to the hierarchy of the other, subtract the contained class cost
@@ -184,6 +196,9 @@ where
                     shared_sub_classes = shared_sub_classes.union(&shared).cloned().collect();
                 }
             }
+
+            let end = start.elapsed();
+            debug!("the time for looping is : {:?}", end);
     
             // Adjust the cost based on shared sub-classes
             for id in shared_sub_classes {
@@ -237,28 +252,36 @@ where
     ///
     /// Returns:
     /// - None
-    fn find_costs(&mut self, ordered : Vec<(Id, usize)>) {
+    fn find_costs(&mut self, oredered_eclasses : Vec<(Id, usize)>) {
+
         let mut did_something = true;
         let mut sub_classes: HashMap<Id, HashSet<Id>> = HashMap::new();
         let mut i = 0;
-        let mut eclasses: Vec<&EClass<L, N::Data>> = Vec::new();
-        for e in ordered{
-            let eclass = &self.egraph[e.0];
-            eclasses.push(eclass);
+        let mut eclasses_iter: Vec<&EClass<L, N::Data>> = Vec::new();
+
+        if oredered_eclasses.is_empty() {
+            for ecl in self.egraph.classes() {
+                eclasses_iter.push(ecl); // Add the e-class to the eclasses_iter list
+            }
+        } else {
+            for ecl in oredered_eclasses {
+                let eclass = &self.egraph[ecl.0]; // Access the e-class using the ordered Ids
+                eclasses_iter.push(eclass); // Add the e-class to the eclasses_iter list
+            }
         }
 
-        // let mut enode_descendents : HashMap<(L, Id), HashSet<Id>> = Default::default();
-        // enode_descendents = Self::find_enode_descendents(self.egraph);
 
         // Iterate until no more changes are detected
         while did_something {
             // Start timer for this iteration
             let start_time = Instant::now();
+            let time_to_pdate = Duration::new(0, 0);
 
             did_something = false;
             i += 1;
+            eprintln!("iteration number {:?}", i);
 
-            for class in &eclasses {
+            for class in &eclasses_iter {
                 let pass = self.make_pass(&mut sub_classes, class);
                 match (self.costs.get(&class.id), pass) {
                     // If the cost is calculated for the first time
@@ -273,13 +296,17 @@ where
                             did_something = true;
                         }
                     }
+
                     _ => (),
                 }
+
             }
 
             // Measure the time for the current iteration
             let duration = start_time.elapsed();
             eprintln!("Iteration {} took {:?}", i, duration);
+            // eprintln!("did_something is {:?}", did_something);
+            eprintln!("total_time to update is {:?} for iteration {:}", time_to_pdate.as_secs_f64(), i);
         }
 
         eprintln!("Total number of iterations: {}", i);
@@ -354,7 +381,7 @@ where
         
         
         let cost_calculation_duration = cost_calculation_start.elapsed();
-        // eprintln!("Cost calculation took: {:?}", cost_calculation_duration);
+        debug!("Cost calculation took: {:?}", cost_calculation_duration);
 
         match cost {
             // If no valid cost could be calculated, return None
@@ -364,6 +391,7 @@ where
 
             // If a valid cost is found
             Some(cost) => {
+                debug!("new cost {:?} found , the enodes {:?} desc are updated", cost, node);
 
                 node.for_each(|id| {
                     node_sub_classes.insert(id);
@@ -378,128 +406,57 @@ where
                
 
                 // Print the total time taken for the function
-                // eprintln!("Total time for make_pass: {:?}", start_time.elapsed());
+                debug!("Total time for make_pass: {:?}", start_time.elapsed());
 
                 Some((cost, node.clone()))
             }
         }
     }
 
-    fn find_enode_descendents(
-        egraph: &'a EGraph<L, N>,
-    ) -> HashMap<(L, Id), HashSet<Id>>
-    {
-        let mut enode_descendents: HashMap<(L, Id), HashSet<Id>> = HashMap::new();
-        let mut visited: HashSet<Id> = HashSet::new();
-
-        for class in egraph.classes() {
-            for node in &class.nodes {
-                let mut result_desc = HashSet::<Id>::new();
-                
-                for child in node.children() {
-                    Self::get_enode_descendents(egraph, *child, &mut result_desc, &mut visited);
-                    result_desc.insert(*child);
-                }
-
-                enode_descendents.insert((node.clone(), class.id), result_desc);
-            }
-        }
-
-        enode_descendents
-
-    }
-
-    fn get_enode_descendents (
-        egraph: &'a EGraph<L, N>,
-        eclass_id: Id,
-        result_desc: &mut HashSet<Id>,
-        visited: &mut HashSet<Id>
-    ) {
-        if visited.contains(&eclass_id) {
-            return;
-        }
-
-        visited.insert(eclass_id);
-
-        if let Some(class) = egraph.classes().find(|class| class.id == eclass_id) {
-            for node in &class.nodes {
-                for child in node.children() {
-                    Self::get_enode_descendents(egraph, *child, result_desc, visited);
-                    result_desc.insert(*child);
-                }
-            }
-        }
-        visited.remove(&eclass_id);
-    }
-
-    // fn find_descendents (
+    // fn find_enode_descendents(
     //     egraph: &'a EGraph<L, N>,
-    //     root: Id,
-    // ) -> HashMap<Id, HashSet<Id>> {
+    // ) -> HashMap<(L, Id), HashSet<Id>>
+    // {
+    //     let mut enode_descendents: HashMap<(L, Id), HashSet<Id>> = HashMap::new();
+    //     let mut visited: HashSet<Id> = HashSet::new();
 
-    //     //let map_id_eclass: HashMap<Id, EClass<L, N>> = egraph.classes().map(|class| (class.id, class)).collect();
+    //     for class in egraph.classes() {
+    //         for node in &class.nodes {
+    //             let mut result_desc = HashSet::<Id>::new();
+                
+    //             for child in node.children() {
+    //                 Self::get_enode_descendents(egraph, *child, &mut result_desc, &mut visited);
+    //                 result_desc.insert(*child);
+    //             }
 
-    //     let mut descendents: HashMap<Id, HashSet<Id>> = Default::default();
-    //     let mut visited: HashSet<Id> = Default::default();
+    //             enode_descendents.insert((node.clone(), class.id), result_desc);
+    //         }
+    //     }
 
-    //     Self::get_descendents(
-    //         egraph,
-    //         root,
-    //         &mut descendents,
-    //         &mut visited
-    //     );
+    //     enode_descendents
 
-    //     descendents
     // }
 
-    // fn get_descendents(
+    // fn get_enode_descendents (
     //     egraph: &'a EGraph<L, N>,
     //     eclass_id: Id,
-    //     descendents: &mut HashMap<Id, HashSet<Id>>,
-    //     visited: &mut HashSet<Id>,  // Added visited set
+    //     result_desc: &mut HashSet<Id>,
+    //     visited: &mut HashSet<Id>
     // ) {
-    //     // Check if we already computed the descendants for this eclass_id
-    //     if descendents.contains_key(&eclass_id) {
-    //         return;
-    //     }
-    
-    //     // Check if we've already visited this eclass_id to prevent cycles
     //     if visited.contains(&eclass_id) {
-    //         eprintln!("Cycle detected at eclass_id: {:?}", eclass_id);
     //         return;
     //     }
-    
-    //     // Mark this eclass_id as visited
+
     //     visited.insert(eclass_id);
-    
-    //     // Find the eclass by its ID
+
     //     if let Some(class) = egraph.classes().find(|class| class.id == eclass_id) {
-    //         let mut result_desc = HashSet::<Id>::new();
-    
-    //         // Iterate over the nodes (ENodes) in the class
     //         for node in &class.nodes {
-    //             // Access each node's children
-    //             eprintln!("node is {:?}", node);
     //             for child in node.children() {
-    //                 // Recursively get the descendants of each child
-    //                 Self::get_descendents(egraph, *child, descendents, visited);
-    
-    //                 // Get the child's descendants and union them with the current result set
-    //                 if let Some(child_desc) = descendents.get(child) {
-    //                     result_desc.extend(child_desc);
-    //                 }
+    //                 Self::get_enode_descendents(egraph, *child, result_desc, visited);
     //                 result_desc.insert(*child);
     //             }
     //         }
-    
-    //         // Store the result for this eclass_id in the descendents map
-    //         descendents.insert(eclass_id, result_desc);
-    //     } else {
-    //         eprintln!("No class found for eclass_id: {:?}", eclass_id);
     //     }
-    
-    //     // After processing, remove from the visited set (this allows revisiting if needed for further unions)
-
     //     visited.remove(&eclass_id);
     // }
 }

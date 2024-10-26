@@ -8,8 +8,8 @@ using namespace fheco;
 #include <string>
 #include <vector>
 
-#define height 3
-#define width 3
+#define height 4
+#define width 4
 
 void fhe()
 {
@@ -66,6 +66,18 @@ int main(int argc, char **argv)
   int window = 0;
   if (argc > 2)
     window = stoi(argv[2]);
+
+  // bool rule_filtering = false;
+  // if (argc > 3)
+  //   rule_filtering = stoi(argv[3]);
+
+  // bool sorting = false;
+  // if (argc > 4)
+  //   sorting = stoi(argv[4]);
+
+  // bool exp_rules = false;
+  // if (argc > 5)
+  //   sorting = stoi(argv[5]);
 
   bool call_quantifier = false;
   if (argc > 3)

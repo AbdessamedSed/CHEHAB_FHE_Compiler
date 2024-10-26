@@ -1,15 +1,17 @@
 use std::usize;
-
+// use egg::{RecExpr, Language, Analysis, EClass, EGraph, Id, Pattern, Subst, Searcher};
+use egg::*;
 use crate::{
     extractor::Extractor,
     veclang::{ConstantFold, Egraph, VecLang},
-    runner::Runner,
+    run::Runner,
     cost::VecCostFn,
+    // rewrite::Rewrite
 };
+// use crate::rewrite::ConditionalApplier;
 use std::collections::HashMap;
 use std::collections::HashSet;
-use egg::rewrite as rw;
-use egg::*;
+use log::debug;
 // Check if all the variables, in this case memories, are equivalent
 
 /// Run the rewrite rules over the input program and return the best (cost, program)
@@ -19,10 +21,62 @@ pub fn run(
     prog: &RecExpr<VecLang>,
     timeout: u64,
     vector_width: usize,
+    rule_filtering: bool,
+    sorting: bool,
+    exp_rules: bool,
 ) -> (usize, RecExpr<VecLang>) {
+    let optimized_rw = true;
+
+    let mut initial_operations = Vec::new();
+    eprintln!("rule_filtering is {:?}", rule_filtering);
+    eprintln!("sorting is {:?}", sorting);
+    eprintln!("exp_rules is {:?}", exp_rules);
+
+    eprintln!("the begining expre is : {:?}", prog);
+
+    for node in prog.as_ref() {
+        debug!("node is : {:?}", node);
+        match node {
+              VecLang::Num(_) 
+            | VecLang::Symbol(_) 
+            | VecLang::Vec(_) 
+            | VecLang::VecNeg(_) 
+            |  VecLang::Rot(_) 
+            => continue,
+
+            VecLang::Add(_) 
+            | VecLang::VecAdd(_) => initial_operations.push("Add".to_string()),
+
+            VecLang::Minus(_) 
+            | VecLang::VecMinus(_) => initial_operations.push("Sub".to_string()),
+
+            VecLang::Mul(_) 
+            | VecLang::VecMul(_) => initial_operations.push("Mul".to_string()),
+
+            VecLang::Neg(_) => initial_operations.push("Neg".to_string())
+
+        }
+    }
+
+    let mut rules_info : HashMap<String, Vec<String>> = HashMap::new();
+    let mut initial_rules : Vec<Rewrite<VecLang, ConstantFold>> = Vec::new();
+    let mut rules : Vec<Rewrite<VecLang, ConstantFold>> = Vec::new();
     // Initialize the rule set based on the vector width
-    let rules = rules(vector_width);
-    let mut iteration_count = 0;
+    generate_rules(
+        vector_width,
+        optimized_rw,
+        exp_rules, 
+        initial_operations,
+        &mut rules_info,
+        &mut initial_rules,
+        &mut rules
+    );
+
+    for rw in initial_rules.iter() {
+        eprintln!("selected rules for beginning are: {:?}", rw.name.as_str());
+
+    }
+
     //let mut stop_flag = false;
     // let start = "(Vec 
     //     (+ (+ (* a0 (* b0 c0)) d0) (+ (* a1 (* b1 c1)) (* a3 (* b3 c3))))
@@ -51,21 +105,15 @@ pub fn run(
 
     type MyRunner = Runner<VecLang, ConstantFold>;
 
+
     let runner = MyRunner::new(Default::default())
         .with_egraph(init_eg)
         .with_expr(&prog)
         .with_node_limit(200_000)
         .with_time_limit(std::time::Duration::from_secs(timeout))
         .with_iter_limit(10_000)
-        .with_hook({
-            move |runner| {
-                /* print the egraph after each iteration */
-                //  eprintln!("egraph in iteration : {:} ***********", iteration_count);
-                // print_egraph(runner.egraph.clone());
-                Ok(())
-            }
-        })
-        .run(&rules);
+        // .run(&initial_rules);
+        .run(&rules, &initial_rules, rules_info);
 
         let report = runner.report();
         eprintln!("report : {:?}", report);
@@ -106,7 +154,7 @@ pub fn run(
    
     /************************************ greedy extraction ******************************************/
     let start_extract_time = Instant::now();
-    let mut extractor = Extractor::new(&eg, VecCostFn { egraph: &eg }, root);
+    let mut extractor = Extractor::new(&eg, VecCostFn { egraph: &eg }, root, true);
     (best_cost, best_expr) = extractor.find_best(root);
     let extract_time = start_extract_time.elapsed();
 
@@ -132,7 +180,7 @@ pub fn run(
     // let mut n_cost:usize = 0;
 
     // // Parameters for simulated annealing
-    // let max_iteration = 99900;
+    // let max_iteration = 9999999;
     // let initial_temp = 99990.0;
     // let cooling_rate = 0.99;
 
@@ -262,293 +310,289 @@ pub fn print_egraph(
 }
 
 
-pub fn vectorization_rules(vector_width: usize) -> Vec<Rewrite<VecLang, ConstantFold>> {
-    let mut rules: Vec<Rewrite<VecLang, ConstantFold>> = vec![];
+    pub fn vectorization_rules(
+        vector_width: usize,
+        optimized_rw: bool,
+        initial_operations: Vec<String>,
+        rules_info: &mut HashMap<String, Vec<String>>,
+        initial_rules: &mut Vec<Rewrite<VecLang, ConstantFold>>,
+        rules: &mut Vec<Rewrite<VecLang, ConstantFold>>
+    ) {
 
-    let mut searcher_add = Vec::new();
-    let mut searcher_mul = Vec::new();
-    let mut searcher_sub = Vec::new();
-    let mut searcher_neg = Vec::new();
+        let mut searcher_add = Vec::new();
+        let mut searcher_mul = Vec::new();
+        let mut searcher_sub = Vec::new();
+        let mut searcher_neg = Vec::new();
 
-    let mut applier_1 = Vec::new();
-    let mut applier_2 = Vec::new();
+        let mut applier_1 = Vec::new();
+        let mut applier_2 = Vec::new();
 
-    for i in 0..vector_width {
-        searcher_add.push(format!("( + ?a{} ?b{}) ", i, i));
-        searcher_mul.push(format!("( * ?a{} ?b{}) ", i, i));
-        searcher_sub.push(format!("( - ?a{} ?b{}) ", i, i));
-        searcher_neg.push(format!("( - ?a{}) ", i));
+        for i in 0..vector_width {
+            searcher_add.push(format!("( + ?a{} ?b{}) ", i, i));
+            searcher_mul.push(format!("( * ?a{} ?b{}) ", i, i));
+            searcher_sub.push(format!("( - ?a{} ?b{}) ", i, i));
+            searcher_neg.push(format!("( - ?a{}) ", i));
 
-        applier_1.push(format!("?a{} ", i));
-        applier_2.push(format!("?b{} ", i));
-    }
+            applier_1.push(format!("?a{} ", i));
+            applier_2.push(format!("?b{} ", i));
+        }
 
-    let lhs_add: Pattern<VecLang> = format!("(Vec {})", searcher_add.concat()).parse().unwrap();
-    let lhs_mul: Pattern<VecLang> = format!("(Vec {})", searcher_mul.concat()).parse().unwrap();
-    let lhs_sub: Pattern<VecLang> = format!("(Vec {})", searcher_sub.concat()).parse().unwrap();
-    let lhs_neg: Pattern<VecLang> = format!("(Vec {})", searcher_neg.concat()).parse().unwrap();
+        let lhs_add: Pattern<VecLang> = format!("(Vec {})", searcher_add.concat()).parse().unwrap();
+        let lhs_mul: Pattern<VecLang> = format!("(Vec {})", searcher_mul.concat()).parse().unwrap();
+        let lhs_sub: Pattern<VecLang> = format!("(Vec {})", searcher_sub.concat()).parse().unwrap();
+        let lhs_neg: Pattern<VecLang> = format!("(Vec {})", searcher_neg.concat()).parse().unwrap();
 
-    // Parse the right-hand side patterns
-    let rhs_add: Pattern<VecLang> = format!(
-        "(VecAdd (Vec {}) (Vec {}))",
-        applier_1.concat(),
-        applier_2.concat()
-    )
-    .parse()
-    .unwrap();
-    eprintln!("{} => {}", lhs_add, rhs_add);
-    let rhs_mul: Pattern<VecLang> = format!(
-        "(VecMul (Vec {}) (Vec {}))",
-        applier_1.concat(),
-        applier_2.concat()
-    )
-    .parse()
-    .unwrap();
-
-    let rhs_sub: Pattern<VecLang> = format!(
-        "(VecMinus (Vec {}) (Vec {}))",
-        applier_1.concat(),
-        applier_2.concat()
-    )
-    .parse()
-    .unwrap();
-
-    let rhs_neg: Pattern<VecLang> = format!("(VecNeg (Vec {}) )", applier_1.concat(),)
+        // Parse the right-hand side patterns
+        let rhs_add: Pattern<VecLang> = format!(
+            "(VecAdd (Vec {}) (Vec {}))",
+            applier_1.concat(),
+            applier_2.concat()
+        )
+        .parse()
+        .unwrap();
+        eprintln!("{} => {}", lhs_add, rhs_add);
+        let rhs_mul: Pattern<VecLang> = format!(
+            "(VecMul (Vec {}) (Vec {}))",
+            applier_1.concat(),
+            applier_2.concat()
+        )
         .parse()
         .unwrap();
 
-    // Push the rewrite rules into the rules vector
+        let rhs_sub: Pattern<VecLang> = format!(
+            "(VecMinus (Vec {}) (Vec {}))",
+            applier_1.concat(),
+            applier_2.concat()
+        )
+        .parse()
+        .unwrap();
 
-    rules.push(rw!(format!("add-vectorize" ); { lhs_add.clone() } => { rhs_add.clone() }));
-    rules.push(rw!(format!("mul-vectorize"); { lhs_mul.clone() } => { rhs_mul.clone() }));
-    rules.push(rw!(format!("sub-vectorize"); { lhs_sub.clone() } => { rhs_sub.clone() }));
-    rules.push(rw!(format!("neg-vectorize"); { lhs_neg.clone() } => { rhs_neg.clone() }));
-    rules
-}
+        let rhs_neg: Pattern<VecLang> = format!("(VecNeg (Vec {}) )", applier_1.concat(),)
+            .parse()
+            .unwrap();
 
-pub fn is_not_vector_of_scalar_operations(
-    vars: &'static str, // Make vars static
-) -> impl Fn(&mut Egraph, Id, &Subst) -> bool + 'static {
-    let vars = &vars[5..vars.len() - 2];
-    let vars_vector = vars.split(" ").collect::<Vec<&str>>();
-    move |egraph, _, subst| {
-        let mut no_scalar_operations = true;
-        for var in &vars_vector {
-            let var = var.parse().unwrap();
-            no_scalar_operations = no_scalar_operations
-                && egraph[subst[var]].nodes.iter().any(|n| match n {
-                    VecLang::Num(..) | VecLang::Symbol(..) => true,
-                    _ => false,
-                });
-            if !no_scalar_operations {
-                break;
+        if optimized_rw {
+            let rule_name_add = format!("add-vectorize");
+            let rule_name_mul = format!("mul-vectorize");
+            let rule_name_sub = format!("sub-vectorize");
+            let rule_name_neg = format!("neg_vectorize");
+            // Conditionally push the rewrite rules into the rules vector
+            if initial_operations.contains(&"Add".to_string()) {
+                initial_rules.push(rewrite!(rule_name_add.clone(); { lhs_add.clone() } => { rhs_add.clone() }));
             }
+
+            if initial_operations.contains(&"Mul".to_string()) {
+                initial_rules.push(rewrite!(rule_name_mul.clone(); { lhs_mul.clone() } => { rhs_mul.clone() }));
+            }
+
+            if initial_operations.contains(&"Sub".to_string()) {
+                initial_rules.push(rewrite!(rule_name_sub.clone(); { lhs_sub.clone() } => { rhs_sub.clone() }));
+            }
+
+            if initial_operations.contains(&"Neg".to_string()) {
+                initial_rules.push(rewrite!(rule_name_neg.clone(); { lhs_neg.clone() } => { rhs_neg.clone() }));
+            }
+
+            rules.push(rewrite!(rule_name_add.clone(); { lhs_add.clone() } => { rhs_add.clone() }));
+            rules.push(rewrite!(rule_name_mul.clone(); { lhs_mul.clone() } => { rhs_mul.clone() }));
+            rules.push(rewrite!(rule_name_sub.clone(); { lhs_sub.clone() } => { rhs_sub.clone() }));
+            rules.push(rewrite!(rule_name_neg.clone(); { lhs_neg.clone() } => { rhs_neg.clone() }));
+            rules_info.insert(rule_name_add.clone(), vec![lhs_add.clone().to_string(), rhs_add.clone().to_string()]);
+            rules_info.insert(rule_name_mul.clone(), vec![lhs_mul.clone().to_string(), rhs_mul.clone().to_string()]);
+            rules_info.insert(rule_name_sub.clone(),  vec![lhs_sub.clone().to_string(), rhs_sub.clone().to_string()]);
+            rules_info.insert(rule_name_neg.clone(), vec![lhs_neg.clone().to_string(), rhs_neg.clone().to_string()]);
+        } else {
+            let rule_name_add = format!("add-vectorize");
+            let rule_name_mul = format!("mul-vectorize");
+            let rule_name_sub = format!("sub-vectorize");
+            let rule_name_neg = format!("neg_vectorize");
+            // Push all rewrite rules into the rules vector
+            initial_rules.push(rewrite!(rule_name_add.clone(); { lhs_add.clone() } => { rhs_add.clone() }));
+            initial_rules.push(rewrite!(rule_name_mul.clone(); { lhs_mul.clone() } => { rhs_mul.clone() }));
+            initial_rules.push(rewrite!(rule_name_sub.clone(); { lhs_sub.clone() } => { rhs_sub.clone() }));
+            initial_rules.push(rewrite!(rule_name_neg.clone(); { lhs_neg.clone() } => { rhs_neg.clone() }));
+            rules.push(rewrite!(rule_name_add.clone(); { lhs_add.clone() } => { rhs_add.clone() }));
+            rules.push(rewrite!(rule_name_mul.clone(); { lhs_mul.clone() } => { rhs_mul.clone() }));
+            rules.push(rewrite!(rule_name_sub.clone(); { lhs_sub.clone() } => { rhs_sub.clone() }));
+            rules.push(rewrite!(rule_name_neg.clone(); { lhs_neg.clone() } => { rhs_neg.clone() }));
+            rules_info.insert(rule_name_add, vec![lhs_add.clone().to_string(), rhs_add.clone().to_string()]);
+            rules_info.insert(rule_name_mul, vec![lhs_mul.clone().to_string(), rhs_mul.clone().to_string()]);
+            rules_info.insert(rule_name_sub,  vec![lhs_sub.clone().to_string(), rhs_sub.clone().to_string()]);
+            rules_info.insert(rule_name_neg, vec![lhs_neg.clone().to_string(), rhs_neg.clone().to_string()]);
         }
-        return no_scalar_operations;
+
     }
-}
 
-pub fn rotation_rules(vector_width: usize) -> Vec<Rewrite<VecLang, ConstantFold>> {
-    // Modify the function to take a static string
+    pub fn is_not_vector_of_scalar_operations(
+        vars: &'static str, // Make vars static
+    ) -> impl Fn(&mut Egraph, Id, &Subst) -> bool + 'static {
+        let vars = &vars[5..vars.len() - 2];
+        let vars_vector = vars.split(" ").collect::<Vec<&str>>();
+        move |egraph, _, subst| {
+            let mut no_scalar_operations = true;
+            for var in &vars_vector {
+                let var = var.parse().unwrap();
+                no_scalar_operations = no_scalar_operations
+                    && egraph[subst[var]].nodes.iter().any(|n| match n {
+                        VecLang::Num(..) | VecLang::Symbol(..) => true,
+                        _ => false,
+                    });
+                if !no_scalar_operations {
+                    break;
+                }
+            }
+            return no_scalar_operations;
+        }
+    }
 
-    let mut rules: Vec<Rewrite<VecLang, ConstantFold>> = vec![];
+    pub fn rotation_rules(vector_width: usize) -> Vec<Rewrite<VecLang, ConstantFold>> {
+        // Modify the function to take a static string
 
-    let vector_width: usize = vector_width;
+        let mut rules: Vec<Rewrite<VecLang, ConstantFold>> = vec![];
 
-    // Create `lhs` as a static str directly
-    let lhs = Box::leak(
-        format!(
+        let vector_width: usize = vector_width;
+
+        // Create `lhs` as a static str directly
+        let lhs = Box::leak(
+            format!(
+                "(Vec {})",
+                (0..vector_width)
+                    .map(|i| format!("?a{} ", i))
+                    .collect::<String>()
+            )
+            .into_boxed_str(),
+        ); // Convert String to &'static str using Box::leak
+
+        let searcher: Pattern<VecLang> = lhs.parse().unwrap();
+
+        for i in 1..vector_width {
+            let rhs = format!(
+                "(<< (Vec {}) {})",
+                (0..vector_width)
+                    .map(|j| format!("?a{} ", (i + j) % vector_width))
+                    .collect::<String>(),
+                vector_width - i
+            );
+            let applier: Pattern<VecLang> = rhs.parse().unwrap();
+
+            // Pass `lhs` as a &'static str, no need for clone
+            let rule: Vec<Rewrite<VecLang, ConstantFold>> = rewrite!(format!("rotations-{}", i); { searcher.clone() } <=> { applier.clone() } if is_not_vector_of_scalar_operations(lhs));
+
+            rules.extend(rule);
+        }
+
+        rules
+    }
+
+
+    pub fn split_vectors(
+        vector_width: usize,
+        initial_operations: Vec<String>
+    ) -> Vec<Rewrite<VecLang, ConstantFold>> {
+        let mut rules: Vec<Rewrite<VecLang, ConstantFold>> = vec![];
+
+        // Store vector width in a constant
+
+        /************************** Zakaria implementaion *********************************/
+
+        let lhs = format!(
             "(Vec {})",
             (0..vector_width)
                 .map(|i| format!("?a{} ", i))
                 .collect::<String>()
-        )
-        .into_boxed_str(),
-    ); // Convert String to &'static str using Box::leak
-
-    let searcher: Pattern<VecLang> = lhs.parse().unwrap();
-
-    for i in 1..vector_width {
-        let rhs = format!(
-            "(<< (Vec {}) {})",
-            (0..vector_width)
-                .map(|j| format!("?a{} ", (i + j) % vector_width))
-                .collect::<String>(),
-            vector_width - i
         );
-        let applier: Pattern<VecLang> = rhs.parse().unwrap();
 
-        // Pass `lhs` as a &'static str, no need for clone
-        let rule: Vec<Rewrite<VecLang, ConstantFold>> = rw!(format!("rotations-{}", i); { searcher.clone() } <=> { applier.clone() } if is_not_vector_of_scalar_operations(lhs));
+        let searcher: Pattern<VecLang> = lhs.parse().unwrap();
 
-        rules.extend(rule);
+        for i in 0..vector_width {
+            let vector1_add = format!(
+                "(Vec {})",
+                (0..vector_width)
+                    .map(|j| if i == j {
+                        "0 ".to_string()
+                    } else {
+                        format!("?a{} ", j)
+                    })
+                    .collect::<String>()
+            );
+            let vector1_mul = format!(
+                "(Vec {})",
+                (0..vector_width)
+                    .map(|j| if i == j {
+                        "1 ".to_string()
+                    } else {
+                        format!("?a{} ", j)
+                    })
+                    .collect::<String>()
+            );
+
+            let vector2_add = format!(
+                "(Vec {})",
+                (0..vector_width)
+                    .map(|j| if i == j {
+                        format!("?a{} ", j)
+                    } else {
+                        "0 ".to_string()
+                    })
+                    .collect::<String>()
+            );
+            let vector2_mul = format!(
+                "(Vec {})",
+                (0..vector_width)
+                    .map(|j| if i == j {
+                        format!("?a{} ", j)
+                    } else {
+                        "1 ".to_string()
+                    })
+                    .collect::<String>()
+            );
+
+            let rhs_add = format!("(VecAdd {} {})", vector1_add, vector2_add);
+            let rhs_mul = format!("(VecMul {} {})", vector1_mul, vector2_mul);
+            let applier_add: Pattern<VecLang> = rhs_add.parse().unwrap();
+            let applier_mul: Pattern<VecLang> = rhs_mul.parse().unwrap();
+
+            if initial_operations.contains(&"Add".to_string()) {
+                rules.push(rewrite!(format!("exp-split-add-{}", i); {  searcher.clone()} => {  applier_add}));
+            }
+
+            if initial_operations.contains(&"Mul".to_string()) {
+                rules.push(rewrite!(format!("exp-split-mul-{}", i); {  searcher.clone()} => {  applier_mul}))
+            }
+        }
+
+        rules
     }
 
-    rules
-}
-
-
-pub fn split_vectors(vector_width: usize) -> Vec<Rewrite<VecLang, ConstantFold>> {
-    let mut rules: Vec<Rewrite<VecLang, ConstantFold>> = vec![];
-
-    // Store vector width in a constant
-
-    /************************** Zakaria implementaion *********************************/
-
-    let lhs = format!(
-        "(Vec {})",
-        (0..vector_width)
-            .map(|i| format!("?a{} ", i))
-            .collect::<String>()
-    );
-
-    let searcher: Pattern<VecLang> = lhs.parse().unwrap();
-
-    for i in 0..vector_width {
-        let vector1_add = format!(
-            "(Vec {})",
-            (0..vector_width)
-                .map(|j| if i == j {
-                    "0 ".to_string()
-                } else {
-                    format!("?a{} ", j)
-                })
-                .collect::<String>()
-        );
-        let vector1_mul = format!(
-            "(Vec {})",
-            (0..vector_width)
-                .map(|j| if i == j {
-                    "1 ".to_string()
-                } else {
-                    format!("?a{} ", j)
-                })
-                .collect::<String>()
-        );
-
-        let vector2_add = format!(
-            "(Vec {})",
-            (0..vector_width)
-                .map(|j| if i == j {
-                    format!("?a{} ", j)
-                } else {
-                    "0 ".to_string()
-                })
-                .collect::<String>()
-        );
-        let vector2_mul = format!(
-            "(Vec {})",
-            (0..vector_width)
-                .map(|j| if i == j {
-                    format!("?a{} ", j)
-                } else {
-                    "1 ".to_string()
-                })
-                .collect::<String>()
-        );
-
-        let rhs_add = format!("(VecAdd {} {})", vector1_add, vector2_add);
-        let rhs_mul = format!("(VecMul {} {})", vector1_mul, vector2_mul);
-        let applier_add: Pattern<VecLang> = rhs_add.parse().unwrap();
-        let applier_mul: Pattern<VecLang> = rhs_mul.parse().unwrap();
-
-        rules.push(rw!(format!("exp-split-add-{}", i); {  searcher.clone()} => {  applier_add}));
-        rules.push(rw!(format!("exp-split-mul-{}", i); {  searcher.clone()} => {  applier_mul}))
-    }
-
-    rules
-
-    /************************* my implementation *********************************/
-
-    // let lhs = format!(
-    //     "(Vec {})",
-    //     (0..vector_width)
-    //         .map(|i| format!("?a{} ", i))
-    //         .collect::<String>()
-    // );
-
-    // let searcher: Pattern<VecLang> = lhs.parse().unwrap();
-
-    // let vector1_add = format!(
-    //     "(Vec {})",
-    //     (0..vector_width)
-    //         .map(|i| if i % 2 == 0 {
-    //             format!("?a{} ", i)
-    //         } else {
-    //             "0 ".to_string()
-    //         })
-    //         .collect::<String>()
-    // );
-    
-    // let vector2_add = format!(
-    //     "(Vec {})",
-    //     (0..vector_width)
-    //         .map(|i| if i % 2 != 0 {
-    //             format!("?a{} ", i)
-    //         } else {
-    //             "0 ".to_string()
-    //         })
-    //         .collect::<String>()
-    // );
-
-    // let vector1_mul = format!(
-    //     "(Vec {})",
-    //     (0..vector_width)
-    //         .map(|i| if i % 2 == 0 {
-    //             format!("1 ")
-    //         } else {
-    //             format!("?a{} ", i)
-    //         })
-    //         .collect::<String>()
-    // );
-    
-    // let vector2_mul = format!(
-    //     "(Vec {})",
-    //     (0..vector_width)
-    //         .map(|i| if i % 2 != 0 {
-    //             format!("1 ")
-    //         } else {
-    //             format!("?a{} ", i)
-    //         })
-    //         .collect::<String>()
-    // );
-
-    // let rhs_add = format!("(VecAdd {} {})", vector1_add, vector2_add);
-    // let rhs_mul = format!("(VecMul {} {})", vector1_mul, vector2_mul);
-
-    // let applier_add: Pattern<VecLang> = rhs_add.parse().unwrap();
-    // let applier_mul: Pattern<VecLang> = rhs_mul.parse().unwrap();
-
-    // rules.push(rw!("split-add"; { searcher.clone() } => { applier_add }));
-    // rules.push(rw!("split-mul"; { searcher.clone() } => { applier_mul }));
-
-    // rules
-}
-
-pub fn commutativity_rules(vector_width: usize) -> Vec<Rewrite<VecLang, ConstantFold>> {
-    let mut rules: Vec<Rewrite<VecLang, ConstantFold>> = vec![];
-
-    for i in (0..vector_width).step_by(2) {
-        // Create the lhs and rhs expressions directly as strings
-        let lhs = format!("(+ (* a{} b{}) c{})", i, i, i);
-        let rhs = format!("(+ c{} (* a{} b{}))", i, i, i);
-
-        // Parse the expressions into patterns
-        let lhs_pattern: Pattern<VecLang> = lhs.parse().unwrap();
-        let rhs_pattern: Pattern<VecLang> = rhs.parse().unwrap();
-
-        // Add the rewrite rule using a literal string for the rule name
-        rules.push(rw!(format!("exp-assoc-{}", i); lhs_pattern => rhs_pattern));
-    }
-
-    rules
-}
-
-
-    pub fn operations_rules(vector_width: usize) -> Vec<Rewrite<VecLang, ConstantFold>> {
+    pub fn commutativity_rules(vector_width: usize) -> Vec<Rewrite<VecLang, ConstantFold>> {
         let mut rules: Vec<Rewrite<VecLang, ConstantFold>> = vec![];
 
-        // Store vector width in a constant
+        for i in (0..vector_width).step_by(2) {
+            // Create the lhs and rhs expressions directly as strings
+            let lhs = format!("(+ (* a{} b{}) c{})", i, i, i);
+            let rhs = format!("(+ c{} (* a{} b{}))", i, i, i);
+
+            // Parse the expressions into patterns
+            let lhs_pattern: Pattern<VecLang> = lhs.parse().unwrap();
+            let rhs_pattern: Pattern<VecLang> = rhs.parse().unwrap();
+
+            // Add the rewrite rule using a literal string for the rule name
+            rules.push(rewrite!(format!("exp-assoc-{}", i); lhs_pattern => rhs_pattern));
+        }
+
+        rules
+    }
+
+
+    pub fn operations_rules(
+        vector_width: usize, 
+        optimized_rw: bool,
+        initial_operations: Vec<String>,
+        rules_info: &mut HashMap<String, Vec<String>>,
+        initial_rules: &mut Vec<Rewrite<VecLang, ConstantFold>>,
+        rules: &mut Vec<Rewrite<VecLang, ConstantFold>>,
+    ) {
+
 
         // Iterate over each possible position in the vector
         for i in 0..vector_width {
@@ -629,54 +673,141 @@ pub fn commutativity_rules(vector_width: usize) -> Vec<Rewrite<VecLang, Constant
             .parse()
             .unwrap();
 
-            // Push the rewrite rules into the rules vector
-            rules.push(rw!(format!("add-split-{}", i); { lhs_add.clone() } => { rhs_add.clone() }));
-            rules.push(rw!(format!("mul-split-{}", i); { lhs_mul.clone() } => { rhs_mul.clone() }));
-            rules.push(rw!(format!("sub-split-{}", i); { lhs_sub.clone() } => { rhs_sub.clone() }));
-            rules.push(rw!(format!("neg-split-{}", i); { lhs_neg } => { rhs_neg }));
+            if optimized_rw {
+                let rule_name_add = format!("add-split-{}", i);
+                let rule_name_mul = format!("mul-split-{}", i);
+                let rule_name_sub = format!("sub-split-{}", i);
+                let rule_name_neg = format!("neg-split-{}", i);
+
+                // Condtionally push the rewrite rules into the rules vector
+                if initial_operations.contains(&"Add".to_string()) {
+                    initial_rules.push(rewrite!(rule_name_add.clone(); { lhs_add.clone() } => { rhs_add.clone() }));
+                }
+
+                if initial_operations.contains(&"Mul".to_string()) {
+                    initial_rules.push(rewrite!(rule_name_mul.clone(); { lhs_mul.clone() } => { rhs_mul.clone() }));
+                }
+
+                if initial_operations.contains(&"Sub".to_string()) {
+                    initial_rules.push(rewrite!(rule_name_sub.clone(); { lhs_sub.clone() } => { rhs_sub.clone() }));
+                }
+
+                if initial_operations.contains(&"Neg".to_string()) {
+                    initial_rules.push(rewrite!(rule_name_neg.clone(); { lhs_neg.clone() } => { rhs_neg.clone() }));
+                }
+
+                rules.push(rewrite!(rule_name_add.clone(); { lhs_add.clone() } => { rhs_add.clone() }));
+                rules.push(rewrite!(rule_name_mul.clone(); { lhs_mul.clone() } => { rhs_mul.clone() }));
+                rules.push(rewrite!(rule_name_sub.clone(); { lhs_sub.clone() } => { rhs_sub.clone() }));
+                rules.push(rewrite!(rule_name_neg.clone(); { lhs_neg.clone() } => { rhs_neg.clone() }));
+                rules_info.insert(rule_name_add, vec!["Add".to_string(),"Add".to_string()]);
+                rules_info.insert(rule_name_mul, vec!["Mul".to_string(), "Mul".to_string()]);
+                rules_info.insert(rule_name_sub,  vec!["Minus".to_string(), "Minus".to_string()]);
+                rules_info.insert(rule_name_neg, vec!["Neg".to_string(), "Neg".to_string()]);
+
+            } 
+            else
+            {
+                let rule_name_add = format!("add-split-{}", i);
+                let rule_name_mul = format!("mul-split-{}", i);
+                let rule_name_sub = format!("sub-split-{}", i);
+                let rule_name_neg = format!("neg-split-{}", i);
+                // Push all rewrite rules into the rules vector
+                initial_rules.push(rewrite!(rule_name_add.clone(); { lhs_add.clone() } => { rhs_add.clone() }));
+                initial_rules.push(rewrite!(rule_name_mul.clone(); { lhs_mul.clone() } => { rhs_mul.clone() }));
+                initial_rules.push(rewrite!(rule_name_sub.clone(); { lhs_sub.clone() } => { rhs_sub.clone() }));
+                initial_rules.push(rewrite!(rule_name_neg.clone(); { lhs_neg.clone() } => { rhs_neg.clone() }));
+                rules.push(rewrite!(rule_name_add.clone(); { lhs_add.clone() } => { rhs_add.clone() }));
+                rules.push(rewrite!(rule_name_mul.clone(); { lhs_mul.clone() } => { rhs_mul.clone() }));
+                rules.push(rewrite!(rule_name_sub.clone(); { lhs_sub.clone() } => { rhs_sub.clone() }));
+                rules.push(rewrite!(rule_name_neg.clone(); { lhs_neg.clone() } => { rhs_neg.clone() }));
+                rules_info.insert(rule_name_add, vec!["Add".to_string(), "Add".to_string()]);
+                rules_info.insert(rule_name_mul, vec!["Mul".to_string(), "Mul".to_string()]);
+                rules_info.insert(rule_name_sub,  vec!["Minus".to_string(), "Minus".to_string()]);
+                rules_info.insert(rule_name_neg, vec!["Neg".to_string(), "Neg".to_string()]);
+            }   
         }
 
-        rules
     }
 
-pub fn rules(vector_width: usize) -> Vec<Rewrite<VecLang, ConstantFold>> {
-    let mut rules: Vec<Rewrite<VecLang, ConstantFold>> = vec![
-        // rw!("add-0"; "(+ 0 ?a)" => "?a"),
-        // rw!("add-0-2"; "(+ ?a 0)" => "?a"),
-        // rw!("mul-0"; "(* 0 ?a)" => "0"),
-        // rw!("mul-0-2"; "(* ?a 0)" => "0"),
-        // rw!("mul-1"; "(* 1 ?a)" => "?a"),
-        // rw!("mul-1-2"; "(* ?a 1)" => "?a"),
-        // rw!("comm-factor-1"; "(+ (* ?a0 ?b0) (* ?a0 ?c0))" => "(* ?a0 (+ ?b0 ?c0))"),
-        // rw!("comm-factor-2"; "(+ (* ?b0 ?a0) (* ?c0 ?a0))" => "(* ?a0 (+ ?b0 ?c0))"),
-    ];
+    pub fn generate_rules(
+        vector_width: usize,
+        optimized_rw: bool,
+        exp_rules: bool,
+        initial_operations: Vec<String>,
+        rules_info: &mut HashMap<String, Vec<String>>,
+        initial_rules: &mut Vec<Rewrite<VecLang, ConstantFold>>,
+        rules: &mut Vec<Rewrite<VecLang, ConstantFold>>,
+    ) {
 
-    // Vector rules
-    rules.extend(vectorization_rules(vector_width));
+        let helping_rules: Vec<Rewrite<VecLang, ConstantFold>> = vec![
+            // rewrite!("add-0"; "(+ 0 ?a)" => "?a"),
+            // rewrite!("add-0-2"; "(+ ?a 0)" => "?a"),
+            // rewrite!("mul-0"; "(* 0 ?a)" => "0"),
+            // rewrite!("mul-0-2"; "(* ?a 0)" => "0"),
+            // rewrite!("mul-1"; "(* 1 ?a)" => "?a"),
+            // rewrite!("mul-1-2"; "(* ?a 1)" => "?a"),
+            // rewrite!("comm-factor-1"; "(+ (* ?a0 ?b0) (* ?a0 ?c0))" => "(* ?a0 (+ ?b0 ?c0))"),
+            // rewrite!("comm-factor-2"; "(+ (* ?b0 ?a0) (* ?c0 ?a0))" => "(* ?a0 (+ ?b0 ?c0))"),
 
-    let rotation_rules = rotation_rules(vector_width);
-    let operations_rules = operations_rules(vector_width);
-    // let split_vectors = split_vectors(vector_width);
-    // let assoc = commutativity_rules(vector_width);
-    // rules.extend(rotation_rules);
-    rules.extend(operations_rules);
-    // rules.extend(split_vectors);
-    //rules.extend(assoc);
+            /*  Basic associativity/commutativity/identities 8102 / expensive rules */
 
-    rules.extend(vec![
-        //  Basic associativity/commutativity/identities 8102 / expensive rules
-        // rw!("commute-Add"; "(+ ?a ?b)" => "(+ ?b ?a)"),
-        // rw!("commute-Mul"; "(* ?a ?b)" => "(* ?b ?a)"),
-        // rw!("assoc-Add"; "(+ (+ ?a ?b) ?c)" => "(+ ?a ( + ?b ?c))"),
-        // rw!("assoc-Mul"; "(* ( * ?a ?b) ?c)" => "(* ?a ( * ?b ?c))"),
-        // rw!("commute-vecadd"; "(VecAdd ?a ?b)" => "(VecAdd ?b ?a)"),
-        // rw!("commute-vecmul"; "(VecMul ?a ?b)" => "(VecMul ?b ?a)"),
-        // rw!("assoc-vecadd"; "(VecAdd (VecAdd ?a ?b) ?c)" => "(VecAdd ?a (VecAdd ?b ?c))"),
-        // rw!("assoc-vecmul"; "(VecMul (VecMul ?a ?b) ?c)" => "(VecMul ?a (VecMul ?b ?c))"),
-        rw!("exp-comm-mul-add"; "(+ ?c0 (* ?a0 ?b0))" => "(+ (* ?a0 ?b0 ) ?c0)"),
-        // rw!("associativity"; "(* ?a0 (* ?b0 ?c0))" => "(* (* ?b0 ?c0) ?a0)"),
-        // rw!("commutativity"; "(+ ?a0 (+ ?b0 ?c0))" => "(+ (+ ?b0 ?c0) ?c0)"),
-    ]);
+            // rewrite!("commute-Add"; "(+ ?a ?b)" => "(+ ?b ?a)"),
+            // rewrite!("commute-Mul"; "(* ?a ?b)" => "(* ?b ?a)"),
+            // rewrite!("assoc-Add"; "(+ (+ ?a ?b) ?c)" => "(+ ?a ( + ?b ?c))"),
+            // rewrite!("assoc-Mul"; "(* ( * ?a ?b) ?c)" => "(* ?a ( * ?b ?c))"),
+            // rewrite!("commute-vecadd"; "(VecAdd ?a ?b)" => "(VecAdd ?b ?a)"),
+            // rewrite!("commute-vecmul"; "(VecMul ?a ?b)" => "(VecMul ?b ?a)"),
+            // rewrite!("assoc-vecadd"; "(VecAdd (VecAdd ?a ?b) ?c)" => "(VecAdd ?a (VecAdd ?b ?c))"),
+            // rewrite!("assoc-vecmul"; "(VecMul (VecMul ?a ?b) ?c)" => "(VecMul ?a (VecMul ?b ?c))"),
+            // rewrite!("exp-comm-mul-add"; "(+ ?c0 (* ?a0 ?b0))" => "(+ (* ?a0 ?b0 ) ?c0)"),
+            // rewrite!("associativity"; "(* ?a0 (* ?b0 ?c0))" => "(* (* ?b0 ?c0) ?a0)"),
+            // rewrite!("commutativity"; "(+ ?a0 (+ ?b0 ?c0))" => "(+ (+ ?b0 ?c0) ?c0)"),
+        ];
 
-    rules
-}
+        rules.extend(helping_rules);
+
+        let mut rules_info_med : HashMap<String, Vec<String>> = HashMap::new();
+        let mut rules_med : Vec<Rewrite<VecLang, ConstantFold>> = Vec::new();
+        let mut initial_rules_med : Vec<Rewrite<VecLang, ConstantFold>> = Vec::new();
+
+        /************************************* rule generation **********************************/
+        operations_rules(
+            vector_width,
+            optimized_rw,
+            initial_operations.clone(),
+            &mut rules_info_med,
+            &mut initial_rules_med,
+            &mut rules_med
+        );
+
+        rules_info.extend(rules_info_med.clone());
+        initial_rules.extend(initial_rules_med.clone());
+        rules.extend(rules_med.clone());
+
+        rules_info_med.clear();
+        rules_med.clear();
+        initial_rules_med.clear();
+
+        vectorization_rules(
+            vector_width,
+            optimized_rw,
+            initial_operations.clone(),
+            &mut rules_info_med,
+            &mut initial_rules_med,
+            &mut rules_med
+        );
+        eprintln!("vectorization rules selected : {:?}", initial_rules_med);
+        rules_info.extend(rules_info_med);
+        initial_rules.extend(initial_rules_med);
+        rules.extend(rules_med);
+
+        /************************************* creating rule set **********************************/
+        if exp_rules {
+            let rotation_rules = rotation_rules(vector_width);
+            let split_vectors = split_vectors(vector_width, initial_operations.clone());
+            rules.extend(rotation_rules);
+            rules.extend(split_vectors);
+        }
+
+    }
