@@ -4,7 +4,7 @@ use egg::*;
 use crate::{
     extractor::Extractor,
     veclang::{ConstantFold, Egraph, VecLang},
-    run::Runner,
+    runner::Runner,
     cost::VecCostFn,
     // rewrite::Rewrite
 };
@@ -73,7 +73,7 @@ pub fn run(
     );
 
     for rw in initial_rules.iter() {
-        eprintln!("selected rules for beginning are: {:?}", rw.name.as_str());
+        debug!("initial rules are: {:?}", rw.name.as_str());
 
     }
 
@@ -109,11 +109,11 @@ pub fn run(
     let runner = MyRunner::new(Default::default())
         .with_egraph(init_eg)
         .with_expr(&prog)
-        .with_node_limit(200_000)
+        .with_node_limit(500_000)
         .with_time_limit(std::time::Duration::from_secs(timeout))
         .with_iter_limit(10_000)
         // .run(&initial_rules);
-        .run(&rules, &initial_rules, rules_info);
+        .run(&rules, &initial_rules, rules_info, optimized_rw);
 
         let report = runner.report();
         eprintln!("report : {:?}", report);
@@ -136,10 +136,10 @@ pub fn run(
     let (eg, root) = (runner.egraph, runner.roots[0]);
     eprintln!("final number of enodes : {:?}", eg.total_size());
 
-    let find_cycle = Instant::now();
-    find_cycles(&eg);
-    let time_end_cycles = find_cycle.elapsed();
-    eprintln!("time for finding cyclse is : {:?}", time_end_cycles);
+    // let find_cycle = Instant::now();
+    // find_cycles(&eg);
+    // let time_end_cycles = find_cycle.elapsed();
+    // eprintln!("time for finding cyclse is : {:?}", time_end_cycles);
 
     let mut best_cost = usize::MAX;
     let mut best_expr: RecExpr<VecLang> = RecExpr::default();
@@ -797,7 +797,7 @@ pub fn print_egraph(
             &mut initial_rules_med,
             &mut rules_med
         );
-        eprintln!("vectorization rules selected : {:?}", initial_rules_med);
+        debug!("vectorization rules selected : {:?}", initial_rules_med);
         rules_info.extend(rules_info_med);
         initial_rules.extend(initial_rules_med);
         rules.extend(rules_med);

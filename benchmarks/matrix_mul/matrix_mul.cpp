@@ -10,7 +10,7 @@ using namespace fheco;
 
 void fhe()
 {
-  size_t size = 6;
+  size_t size = 4;
   std::vector<std::vector<Ciphertext>> a = std::vector<std::vector<Ciphertext>>(size, std::vector<Ciphertext>(size));
   std::vector<std::vector<Ciphertext>> b = std::vector<std::vector<Ciphertext>>(size, std::vector<Ciphertext>(size));
   std::vector<std::vector<Ciphertext>> c(size, std::vector<Ciphertext>(size));
