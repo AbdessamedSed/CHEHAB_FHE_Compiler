@@ -25,14 +25,15 @@ pub fn run(
     sorting: bool,
     exp_rules: bool,
 ) -> (usize, RecExpr<VecLang>) {
-    let optimized_rw = true;
+    let optimized_rw = false;
+    let sorting = false;
 
     let mut initial_operations = Vec::new();
     eprintln!("rule_filtering is {:?}", rule_filtering);
     eprintln!("sorting is {:?}", sorting);
     eprintln!("exp_rules is {:?}", exp_rules);
 
-    eprintln!("the begining expre is : {:?}", prog);
+    debug!("the begining expre is : {:?}", prog);
 
     for node in prog.as_ref() {
         debug!("node is : {:?}", node);
@@ -48,7 +49,7 @@ pub fn run(
             | VecLang::VecAdd(_) => initial_operations.push("Add".to_string()),
 
             VecLang::Minus(_) 
-            | VecLang::VecMinus(_) => initial_operations.push("Sub".to_string()),
+            | VecLang::VecMinus(_) => initial_operations.push("Min".to_string()),
 
             VecLang::Mul(_) 
             | VecLang::VecMul(_) => initial_operations.push("Mul".to_string()),
@@ -109,7 +110,7 @@ pub fn run(
     let runner = MyRunner::new(Default::default())
         .with_egraph(init_eg)
         .with_expr(&prog)
-        .with_node_limit(500_000)
+        .with_node_limit(1_000_000)
         .with_time_limit(std::time::Duration::from_secs(timeout))
         .with_iter_limit(10_000)
         // .run(&initial_rules);
@@ -135,11 +136,6 @@ pub fn run(
     // Extract the e-graph and the root node
     let (eg, root) = (runner.egraph, runner.roots[0]);
     eprintln!("final number of enodes : {:?}", eg.total_size());
-
-    // let find_cycle = Instant::now();
-    // find_cycles(&eg);
-    // let time_end_cycles = find_cycle.elapsed();
-    // eprintln!("time for finding cyclse is : {:?}", time_end_cycles);
 
     let mut best_cost = usize::MAX;
     let mut best_expr: RecExpr<VecLang> = RecExpr::default();
@@ -203,55 +199,6 @@ pub fn run(
     // Return the extracted cost and expression
     (best_cost, best_expr)
 
-}
-
-fn find_cycles<L, N>(egraph: &EGraph<L, N>) -> Vec<(Id, usize)>
-where
-    L: Language,
-    N: Analysis<L>,
-{
-    enum Color {
-        White,
-        Gray,
-        Black,
-    }
-    type Enter = bool;
-
-    // Structure to store the detected cycles
-    let mut cycles: Vec<(Id, usize)> = Vec::new();
-
-    // Color map to track the state of each e-class
-    let mut color: HashMap<Id, Color> = egraph.classes().map(|c| (c.id, Color::White)).collect();
-
-    // Stack for the depth-first search
-    let mut stack: Vec<(Enter, Id)> = egraph.classes().map(|c| (true, c.id)).collect();
-
-    // Traverse the e-graph
-    while let Some((enter, id)) = stack.pop() {
-        if enter {
-            *color.get_mut(&id).unwrap() = Color::Gray;
-            stack.push((false, id));  // Mark the node for completion after exploring its children
-            
-            // Iterate over each node in the e-class
-            for (i, node) in egraph[id].iter().enumerate() {
-                // Iterate over children of the node
-                for child in node.children() {
-                    match &color[child] {
-                        Color::White => stack.push((true, *child)),  // Traverse deeper if unvisited
-                        Color::Gray => cycles.push((id, i)),  // Cycle detected, push to the result
-                        Color::Black => (),  // Already fully explored
-                    }
-                }
-            }
-        } else {
-            *color.get_mut(&id).unwrap() = Color::Black;  // Mark node as fully processed
-        }
-    }
-
-    eprintln!("cycles are : {:?}", cycles);
-
-    // Return the detected cycles
-    cycles
 }
 
 
@@ -385,7 +332,7 @@ pub fn print_egraph(
                 initial_rules.push(rewrite!(rule_name_mul.clone(); { lhs_mul.clone() } => { rhs_mul.clone() }));
             }
 
-            if initial_operations.contains(&"Sub".to_string()) {
+            if initial_operations.contains(&"Min".to_string()) {
                 initial_rules.push(rewrite!(rule_name_sub.clone(); { lhs_sub.clone() } => { rhs_sub.clone() }));
             }
 
@@ -688,7 +635,7 @@ pub fn print_egraph(
                     initial_rules.push(rewrite!(rule_name_mul.clone(); { lhs_mul.clone() } => { rhs_mul.clone() }));
                 }
 
-                if initial_operations.contains(&"Sub".to_string()) {
+                if initial_operations.contains(&"Min".to_string()) {
                     initial_rules.push(rewrite!(rule_name_sub.clone(); { lhs_sub.clone() } => { rhs_sub.clone() }));
                 }
 
@@ -730,6 +677,359 @@ pub fn print_egraph(
 
     }
 
+    pub fn is_vec_op(egraph: &EGraph<VecLang, ConstantFold>, id: Id) -> bool {
+        egraph[id].nodes.iter().any(|node| matches!(node, VecLang::Vec(_)))
+    }
+
+    fn is_vec(var1: &'static str,var2: &'static str,var3: &'static str,var4: &'static str) -> impl Fn(&mut EGraph<VecLang, ConstantFold>, Id, &Subst) -> bool {
+        let var1_str = var1.parse().unwrap();
+        let var2_str = var2.parse().unwrap();
+        let var3_str = var3.parse().unwrap();
+        let var4_str = var4.parse().unwrap();
+        move |egraph : &mut EGraph<VecLang, ConstantFold>, _, subst| {
+            let nodes1 = &egraph[subst[var1_str]].nodes ;
+            let nodes2 = &egraph[subst[var2_str]].nodes ;
+            let nodes3 = &egraph[subst[var3_str]].nodes ;
+            let nodes4 = &egraph[subst[var4_str]].nodes ;
+            let is_vector1 = nodes1.iter().any(|n| matches!(n, VecLang::Vec(_)));
+            let is_vector2 = nodes2.iter().any(|n| matches!(n, VecLang::Vec(_)));
+            let is_vector3 = nodes3.iter().any(|n| matches!(n, VecLang::Vec(_)));
+            let is_vector4 = nodes4.iter().any(|n| matches!(n, VecLang::Vec(_)));
+    
+            is_vector1&&is_vector2&&is_vector3&&is_vector4
+        }
+    }
+
+    fn is_vec_mul(var1: &'static str,var2: &'static str,var3: &'static str,var4: &'static str,var5: &'static str,var6: &'static str,var7: &'static str,var8: &'static str) -> impl Fn(&mut EGraph<VecLang, ConstantFold>, Id, &Subst) -> bool {
+        let var1_str = var1.parse().unwrap();
+        let var2_str = var2.parse().unwrap();
+        let var3_str = var3.parse().unwrap();
+        let var4_str = var4.parse().unwrap();
+        let var5_str = var5.parse().unwrap();
+        let var6_str = var6.parse().unwrap();
+        let var7_str = var7.parse().unwrap();
+        let var8_str = var8.parse().unwrap();
+        move |egraph : &mut EGraph<VecLang, ConstantFold>, _, subst| {
+            let nodes1 = &egraph[subst[var1_str]].nodes ;
+            let nodes2 = &egraph[subst[var2_str]].nodes ;
+            let nodes3 = &egraph[subst[var3_str]].nodes ;
+            let nodes4 = &egraph[subst[var4_str]].nodes ;
+            let nodes5 = &egraph[subst[var5_str]].nodes ;
+            let nodes6 = &egraph[subst[var6_str]].nodes ;
+            let nodes7 = &egraph[subst[var7_str]].nodes ;
+            let nodes8 = &egraph[subst[var8_str]].nodes ;
+            let is_vector1 = nodes1.iter().any(|n| matches!(n, VecLang::Vec(_)));
+            let is_vector2 = nodes2.iter().any(|n| matches!(n, VecLang::Vec(_)));
+            let is_vector3 = nodes3.iter().any(|n| matches!(n, VecLang::Vec(_)));
+            let is_vector4 = nodes4.iter().any(|n| matches!(n, VecLang::Vec(_)));
+            let is_vector5 = nodes5.iter().any(|n| matches!(n, VecLang::Vec(_)));
+            let is_vector6 = nodes6.iter().any(|n| matches!(n, VecLang::Vec(_)));
+            let is_vector7 = nodes7.iter().any(|n| matches!(n, VecLang::Vec(_)));
+            let is_vector8 = nodes8.iter().any(|n| matches!(n, VecLang::Vec(_)));
+    
+            is_vector1&&is_vector2&&is_vector3&&is_vector4&&is_vector5&&is_vector6&&is_vector7&&is_vector8
+        }
+    }
+
+    pub fn balancing_rules(
+        optimized_rw: bool,
+        initial_operations: Vec<String>,
+        rules_info: &mut HashMap<String, Vec<String>>,
+        initial_rules: &mut Vec<Rewrite<VecLang, ConstantFold>>,
+        rules: &mut Vec<Rewrite<VecLang, ConstantFold>>,
+    ) {
+        let assoc_balan_add: Vec<Rewrite<VecLang, ConstantFold>> = vec![
+            rewrite!("assoc-balan-add-1"; 
+            "(VecAdd ?x (VecAdd ?y (VecAdd ?z ?t)))" => 
+            "(VecAdd (VecAdd ?x ?y) (VecAdd ?z ?t))"
+            //if is_vec("?x","?y","?z","?t")
+            ),
+            rewrite!("assoc-balan-add-2"; 
+            "(VecAdd ?x (VecAdd (VecAdd ?z ?t) ?y))" => 
+            "(VecAdd (VecAdd ?x ?z) (VecAdd ?t ?y))"
+            //if is_vec("?x","?z","?t","?y")
+            ),
+            rewrite!("assoc-balan-add-3"; 
+            "(VecAdd (VecAdd (VecAdd ?x ?y) ?z) ?t)" => 
+            "(VecAdd (VecAdd ?x ?y) (VecAdd ?z ?t))"
+            //if is_vec("?x","?z","?t","?y")
+            ),
+            rewrite!("assoc-balan-add-4"; 
+            "(VecAdd (VecAdd ?x (VecAdd ?y ?z)) ?t)" => 
+            "(VecAdd (VecAdd ?x ?y) (VecAdd ?z ?t))"
+            //if is_vec("?x","?z","?t","?y")
+            )
+        ];
+
+        let assoc_balan_mul : Vec<Rewrite<VecLang, ConstantFold>> = vec![
+            rewrite!("assoc-balan-mul-1"; 
+            "(VecMul ?x (VecMul ?y (VecMul ?z ?t)))" => 
+            "(VecMul (VecMul ?x ?y) (VecMul ?z ?t))"
+            //if is_vec("?x","?y","?z","?t")
+            ),
+            rewrite!("assoc-balan-mul-2"; 
+            "(VecMul ?x (VecMul (VecMul ?z ?t) ?y))" => 
+            "(VecMul (VecMul ?x ?z) (VecMul ?t ?y))"
+            //if is_vec("?x","?z","?t","?y")
+            ),
+            rewrite!("assoc-balan-mul-3"; 
+            "(VecMul (VecMul (VecMul ?x ?y) ?z) ?t)" => 
+            "(VecMul (VecMul ?x ?y) (VecMul ?z ?t))"
+            //if is_vec("?x","?z","?t","?y")
+            ),
+            rewrite!("assoc-balan-mul-4"; 
+            "(VecMul (VecMul ?x (VecMul ?y ?z)) ?t)" => 
+            "(VecMul (VecMul ?x ?y) (VecMul ?z ?t))"
+            //if is_vec("?x","?z","?t","?y")
+            ),
+            rewrite!("assoc-balan-mul-5"; 
+            "(VecMul ?x (VecMul (VecMul ?y ?z) ?t))" => 
+            "(VecMul (VecMul ?x ?y) (VecMul ?z ?t))"
+            //if is_vec("?x","?z","?t","?y")
+            ),
+            rewrite!("assoc-balan-mul-6"; 
+            "(VecMul ?x (VecMul (VecMul ?y ?z) ?t))" => 
+            "(VecMul (VecMul ?x ?y) (VecMul ?z ?t))"
+            //if is_vec("?x","?z","?t","?y")
+            )
+        ];
+
+        let assoc_balan_min: Vec<Rewrite<VecLang, ConstantFold>> = vec![
+            rewrite!("assoc-balan-min-1"; 
+            "(VecMinus ?x (VecMinus ?y (VecMinus ?z ?t)))" => 
+            "(VecMinus (VecMinus ?x ?y) (VecMinus ?z ?t))"
+            //if is_vec("?x","?y","?z","?t")
+            ),
+            rewrite!("assoc-balan-min-2"; 
+            "(VecMinus ?x (VecMinus (VecMinus ?z ?t) ?y))" => 
+            "(VecMinus (VecMinus ?x ?z) (VecMinus ?t ?y))"
+            //if is_vec("?x","?z","?t","?y")
+            ),
+            rewrite!("assoc-balan-min-3"; 
+            "(VecMinus (VecMinus (VecMinus ?x ?y) ?z) ?t)" => 
+            "(VecMinus (VecMinus ?x ?y) (VecMinus ?z ?t))"
+            //if is_vec("?x","?z","?t","?y")
+            ),
+            rewrite!("assoc-balan-min-4"; 
+            "(VecMinus (VecMinus ?x (VecMinus ?y ?z)) ?t)" => 
+            "(VecMinus (VecMinus ?x ?y) (VecMinus ?z ?t))"
+            //if is_vec("?x","?z","?t","?y")
+            )
+        ];
+
+    let assoc_balan_add_mul :  Vec<Rewrite<VecLang, ConstantFold>> = vec![
+        rewrite!("assoc-balan-add-mul-1"; 
+        "(VecAdd (VecAdd (VecAdd (VecMul ?c1 ?c2) (VecMul ?d1 ?d2)) (VecMul ?b1 ?b2)) (VecMul ?a1 ?a2))" => 
+        "(VecAdd (VecAdd (VecMul ?a1 ?a2) (VecMul ?b1 ?b2)) (VecAdd (VecMul ?c1 ?c2) (VecMul ?d1 ?d2)))"
+        ////if is_vec_mul("?a1","?a2","?b1","?b2","?c1","?c2","?d1","?d2")
+        ),
+        rewrite!("assoc-balan-add-mul-2"; 
+        "(VecAdd (VecMul ?a1 ?a2) (VecAdd (VecMul ?b1 ?b2) (VecAdd (VecMul ?c1 ?c2) (VecMul ?d1 ?d2))))" => 
+        "(VecAdd (VecAdd (VecMul ?a1 ?a2) (VecMul ?b1 ?b2)) (VecAdd (VecMul ?c1 ?c2) (VecMul ?d1 ?d2)))"
+        //////if is_vec_mul("?a1","?a2","?b1","?b2","?c1","?c2","?d1","?d2")
+        ),
+        rewrite!("assoc-balan-add-mul-3"; 
+        "(VecAdd (VecAdd (VecMul ?a1 ?a2) (VecAdd (VecMul ?b1 ?b2) (VecMul ?c1 ?c2))) (VecMul ?d1 ?d2))" => 
+        "(VecAdd (VecAdd (VecMul ?a1 ?a2) (VecMul ?b1 ?b2)) (VecAdd (VecMul ?c1 ?c2) (VecMul ?d1 ?d2)))"
+        //////if is_vec_mul("?a1","?a2","?b1","?b2","?c1","?c2","?d1","?d2")
+        ),
+        rewrite!("distribute-mul-over-add"; 
+        "(VecMul ?a (VecAdd ?b ?c))" => "(VecAdd (VecMul ?a ?b) (VecMul ?a ?c))"
+        //if is_vec("?a","?b","?c","?c")
+        ),
+        rewrite!("factor-out-mul"; 
+            "(VecAdd (VecMul ?a ?b) (VecMul ?a ?c))" => "(VecMul ?a (VecAdd ?b ?c))"
+            //if is_vec("?a","?b","?c","?c")
+        ),
+    ];
+
+    let assoc_balan_add_min :  Vec<Rewrite<VecLang, ConstantFold>> = vec![
+        rewrite!("assoc-balan-add-min-1"; 
+        "(VecAdd (VecAdd (VecAdd (VecMinus ?c1 ?c2) (VecMinus ?d1 ?d2)) (VecMinus ?b1 ?b2)) (VecMinus ?a1 ?a2))" => 
+        "(VecAdd (VecAdd (VecMinus ?a1 ?a2) (VecMinus ?b1 ?b2)) (VecAdd (VecMinus ?c1 ?c2) (VecMinus ?d1 ?d2)))"
+        //if is_vec_mul("?a1","?a2","?b1","?b2","?c1","?c2","?d1","?d2")
+        ),
+        rewrite!("assoc-balan-add-min-2"; 
+        "(VecAdd (VecMinus ?a1 ?a2) (VecAdd (VecMinus ?b1 ?b2) (VecAdd (VecMinus ?c1 ?c2) (VecMinus ?d1 ?d2))))" => 
+        "(VecAdd (VecAdd (VecMinus ?a1 ?a2) (VecMinus ?b1 ?b2)) (VecAdd (VecMinus ?c1 ?c2) (VecMinus ?d1 ?d2)))"
+        //if is_vec_mul("?a1","?a2","?b1","?b2","?c1","?c2","?d1","?d2")
+        ),
+        rewrite!("assoc-balan-add-min-3"; 
+        "(VecAdd (VecAdd (VecMinus ?a1 ?a2) (VecAdd (VecMinus ?b1 ?b2) (VecMinus ?c1 ?c2))) (VecMinus ?d1 ?d2))" => 
+        "(VecAdd (VecAdd (VecMinus ?a1 ?a2) (VecMinus ?b1 ?b2)) (VecAdd (VecMinus ?c1 ?c2) (VecMinus ?d1 ?d2)))"
+        //if is_vec_mul("?a1","?a2","?b1","?b2","?c1","?c2","?d1","?d2")
+        ),
+    ];
+
+    let assoc_balan_min_mul : Vec<Rewrite<VecLang, ConstantFold>> = vec![
+        rewrite!("assoc-balan-min-mul-1"; 
+        "(VecMinus (VecMinus (VecMinus (VecMul ?c1 ?c2) (VecMul ?d1 ?d2)) (VecMul ?b1 ?b2)) (VecMul ?a1 ?a2))" => 
+        "(VecMinus (VecMinus (VecMul ?a1 ?a2) (VecMul ?b1 ?b2)) (VecAdd (VecMul ?c1 ?c2) (VecMul ?d1 ?d2)))"
+        //if is_vec_mul("?a1","?a2","?b1","?b2","?c1","?c2","?d1","?d2")
+        ),
+        rewrite!("assoc-balan-min-mul-2"; 
+        "(VecMinus (VecMul ?a1 ?a2) (VecMinus (VecMul ?b1 ?b2) (VecMinus (VecMul ?c1 ?c2) (VecMul ?d1 ?d2))))" => 
+        "(VecMinus (VecMinus (VecMul ?a1 ?a2) (VecMul ?b1 ?b2)) (VecMinus (VecMul ?c1 ?c2) (VecMul ?d1 ?d2)))"
+        //if is_vec_mul("?a1","?a2","?b1","?b2","?c1","?c2","?d1","?d2")
+        ),
+        rewrite!("assoc-balan-min-mul-3"; 
+        "(VecMinus (VecMinus (VecMul ?a1 ?a2) (VecMinus (VecMul ?b1 ?b2) (VecMul ?c1 ?c2))) (VecMul ?d1 ?d2))" => 
+        "(VecMinus (VecMinus (VecMul ?a1 ?a2) (VecMul ?b1 ?b2)) (VecMinus (VecMul ?c1 ?c2) (VecMul ?d1 ?d2)))"
+        //if is_vec_mul("?a1","?a2","?b1","?b2","?c1","?c2","?d1","?d2")
+        ),
+        rewrite!("distribute-mul-over-min"; 
+        "(VecMul ?a (VecMinus ?b ?c))" => "(VecMinus (VecMul ?a ?b) (VecMul ?a ?c))"
+        if is_vec("?a","?b","?c","?c")
+        ),
+        rewrite!("factor-out-mul_min";
+            "(VecMinus (VecMul ?a ?b) (VecMul ?a ?c))" => "(VecMul ?a (VecMinus ?b ?c))"
+            //if is_vec("?a","?b","?c","?c")
+        ),
+    ];
+
+    if optimized_rw {
+
+        if initial_operations.contains(&"Add".to_string()) {
+            eprintln!("Adding add op");
+            for rule in &assoc_balan_add {
+                initial_rules.push(rule.clone());
+                rules.push(rule.clone());
+            }
+            initial_rules.push(rewrite!("add-0"; "(+ 0 ?a)" => "?a"));
+            initial_rules.push(rewrite!("add-0-2"; "(+ ?a 0)" => "?a"));
+            rules.push(rewrite!("add-0"; "(+ 0 ?a)" => "?a"));
+            rules.push(rewrite!("add-0-2"; "(+ ?a 0)" => "?a"));            
+        }
+        
+        if initial_operations.contains(&"Min".to_string()) {
+            eprintln!("Adding min op");
+            for rule in &assoc_balan_min {
+                initial_rules.push(rule.clone());
+                rules_info.insert(rule.name.to_string(), vec!["Min".to_string(), "Min".to_string()]);
+                rules.push(rule.clone());
+            }
+            initial_rules.push(rewrite!("sub-0"; "(- 0 ?a)" => "?a"));
+            initial_rules.push(rewrite!("sub-0-2"; "(- ?a 0)" => "?a"));
+            rules.push(rewrite!("sub-0"; "(- 0 ?a)" => "?a"));
+            rules.push(rewrite!("sub-0-2"; "(- ?a 0)" => "?a"));
+        }
+    
+        if initial_operations.contains(&"Mul".to_string()) {
+            eprintln!("Adding mul op");
+            for rule in &assoc_balan_mul {
+                initial_rules.push(rule.clone());
+                rules_info.insert(rule.name.to_string(), vec!["Mul".to_string(), "Mul".to_string()]);
+                rules.push(rule.clone());
+            }
+            initial_rules.push(rewrite!("mul-0"; "(* 0 ?a)" => "0"));
+            initial_rules.push(rewrite!("mul-0-2"; "(* ?a 0)" => "0"));
+            initial_rules.push(rewrite!("mul-1"; "(* 1 ?a)" => "?a"));
+            initial_rules.push(rewrite!("mul-1-2"; "(* ?a 1)" => "?a"));
+            rules.push(rewrite!("mul-0"; "(* 0 ?a)" => "0"));
+            rules.push(rewrite!("mul-0-2"; "(* ?a 0)" => "0"));
+            rules.push(rewrite!("mul-1"; "(* 1 ?a)" => "?a"));
+            rules.push(rewrite!("mul-1-2"; "(* ?a 1)" => "?a"));
+        }
+
+        if initial_operations.contains(&"Add".to_string()) && initial_operations.contains(&"Mul".to_string()) {
+            for rule in &assoc_balan_add_mul {
+                initial_rules.push(rule.clone());
+                rules_info.insert(rule.name.to_string(), vec!["AddMul".to_string(), "AddMul".to_string()]);
+                rules.push(rule.clone());
+            }
+        }
+
+        if initial_operations.contains(&"Add".to_string()) && initial_operations.contains(&"Min".to_string()) {
+            for rule in &assoc_balan_add_min {
+                initial_rules.push(rule.clone());
+                rules_info.insert(rule.name.to_string(), vec!["AddMin".to_string(), "AddMin".to_string()]);
+                rules.push(rule.clone());
+            }
+        }
+
+        if initial_operations.contains(&"Min".to_string()) && initial_operations.contains(&"Mul".to_string()) {
+            for rule in &assoc_balan_min_mul {
+                initial_rules.push(rule.clone());
+                rules_info.insert(rule.name.to_string(), vec!["MinMul".to_string(), "MinMul".to_string()]);
+                rules.push(rule.clone());
+            }
+        }
+
+    }
+
+    else {
+        initial_rules.extend(assoc_balan_add.clone());
+        initial_rules.extend(assoc_balan_min.clone());
+        initial_rules.extend(assoc_balan_mul.clone());
+        initial_rules.extend(assoc_balan_add_min.clone());
+        initial_rules.extend(assoc_balan_add_mul.clone());
+        initial_rules.extend(assoc_balan_min_mul.clone());
+        initial_rules.push(rewrite!("add-0"; "(+ 0 ?a)" => "?a"));
+        initial_rules.push(rewrite!("add-0-2"; "(+ ?a 0)" => "?a"));
+        initial_rules.push(rewrite!("mul-0"; "(* 0 ?a)" => "0"));
+        initial_rules.push(rewrite!("mul-0-2"; "(* ?a 0)" => "0"));
+        initial_rules.push(rewrite!("mul-1"; "(* 1 ?a)" => "?a"));
+        initial_rules.push(rewrite!("mul-1-2"; "(* ?a 1)" => "?a"));
+        initial_rules.push(rewrite!("sub-0"; "(- 0 ?a)" => "?a"));
+        initial_rules.push(rewrite!("sub-0-2"; "(- ?a 0)" => "?a"));
+        rules.extend(assoc_balan_add.clone());
+        rules.extend(assoc_balan_min.clone());
+        rules.extend(assoc_balan_mul.clone());
+        rules.extend(assoc_balan_add_min.clone());
+        rules.extend(assoc_balan_add_mul.clone());
+        rules.extend(assoc_balan_min_mul.clone());
+    }
+
+    // rules_info
+
+    for rule in &assoc_balan_add {
+        rules_info.insert(rule.name.to_string(), vec!["Add".to_string(), "Add".to_string()]);
+    }
+
+    for rule in &assoc_balan_min {
+        initial_rules.push(rule.clone());
+        rules_info.insert(rule.name.to_string(), vec!["Min".to_string(), "Min".to_string()]);
+    }
+    
+    for rule in &assoc_balan_mul {
+        rules_info.insert(rule.name.to_string(), vec!["Mul".to_string(), "Mul".to_string()]);
+    }
+    
+    for rule in &assoc_balan_add_mul {
+        rules_info.insert(rule.name.to_string(), vec!["AddMul".to_string(), "AddMul".to_string()]);
+    }
+
+    for rule in &assoc_balan_add_min {
+        rules_info.insert(rule.name.to_string(), vec!["AddMin".to_string(), "AddMin".to_string()]);
+    }
+
+    for rule in &assoc_balan_min_mul {
+        rules_info.insert(rule.name.to_string(), vec!["MinMul".to_string(), "MinMul".to_string()]);
+    }
+
+    // rules.push(rewrite!("add-0"; "(+ 0 ?a)" => "?a"));
+    // rules.push(rewrite!("add-0-2"; "(+ ?a 0)" => "?a"));
+    // rules.push(rewrite!("mul-0"; "(* 0 ?a)" => "0"));
+    // rules.push(rewrite!("mul-0-2"; "(* ?a 0)" => "0"));
+    // rules.push(rewrite!("mul-1"; "(* 1 ?a)" => "?a"));
+    // rules.push(rewrite!("mul-1-2"; "(* ?a 1)" => "?a"));
+    // rules.push(rewrite!("min-0"; "(- 0 ?a)" => "?a"));
+    // rules.push(rewrite!("min-0-2"; "(- ?a 0)" => "?a"));
+    
+    // Add rules_info for all rules at the end
+    // rules_info.insert("add-0".to_string(), vec!["Add".to_string(), "Add".to_string()]);
+    // rules_info.insert("add-0-2".to_string(), vec!["Add".to_string(), "Add".to_string()]);
+    // rules_info.insert("mul-0".to_string(), vec!["Mul".to_string(), "Mul".to_string()]);
+    // rules_info.insert("mul-0-2".to_string(), vec!["Mul".to_string(), "Mul".to_string()]);
+    // rules_info.insert("mul-1".to_string(), vec!["Mul".to_string(), "Mul".to_string()]);
+    // rules_info.insert("mul-1-2".to_string(), vec!["Mul".to_string(), "Mul".to_string()]);
+    // rules_info.insert("min-0".to_string(), vec!["Min".to_string(), "Min".to_string()]);
+    // rules_info.insert("min-0-2".to_string(), vec!["Min".to_string(), "Min".to_string()]);
+    
+
+   
+    }
+
     pub fn generate_rules(
         vector_width: usize,
         optimized_rw: bool,
@@ -740,7 +1040,9 @@ pub fn print_egraph(
         rules: &mut Vec<Rewrite<VecLang, ConstantFold>>,
     ) {
 
-        let helping_rules: Vec<Rewrite<VecLang, ConstantFold>> = vec![
+        let constant_folding_rules: Vec<Rewrite<VecLang, ConstantFold>> = vec![
+            // rewrite!("con-1"; "0" => "(+ 0 0)"),
+            // rewrite!("con-2"; "1" => "(* 1 1)"),
             // rewrite!("add-0"; "(+ 0 ?a)" => "?a"),
             // rewrite!("add-0-2"; "(+ ?a 0)" => "?a"),
             // rewrite!("mul-0"; "(* 0 ?a)" => "0"),
@@ -749,45 +1051,33 @@ pub fn print_egraph(
             // rewrite!("mul-1-2"; "(* ?a 1)" => "?a"),
             // rewrite!("comm-factor-1"; "(+ (* ?a0 ?b0) (* ?a0 ?c0))" => "(* ?a0 (+ ?b0 ?c0))"),
             // rewrite!("comm-factor-2"; "(+ (* ?b0 ?a0) (* ?c0 ?a0))" => "(* ?a0 (+ ?b0 ?c0))"),
-
-            /*  Basic associativity/commutativity/identities 8102 / expensive rules */
-
-            // rewrite!("commute-Add"; "(+ ?a ?b)" => "(+ ?b ?a)"),
-            // rewrite!("commute-Mul"; "(* ?a ?b)" => "(* ?b ?a)"),
-            // rewrite!("assoc-Add"; "(+ (+ ?a ?b) ?c)" => "(+ ?a ( + ?b ?c))"),
-            // rewrite!("assoc-Mul"; "(* ( * ?a ?b) ?c)" => "(* ?a ( * ?b ?c))"),
-            // rewrite!("commute-vecadd"; "(VecAdd ?a ?b)" => "(VecAdd ?b ?a)"),
-            // rewrite!("commute-vecmul"; "(VecMul ?a ?b)" => "(VecMul ?b ?a)"),
-            // rewrite!("assoc-vecadd"; "(VecAdd (VecAdd ?a ?b) ?c)" => "(VecAdd ?a (VecAdd ?b ?c))"),
-            // rewrite!("assoc-vecmul"; "(VecMul (VecMul ?a ?b) ?c)" => "(VecMul ?a (VecMul ?b ?c))"),
-            // rewrite!("exp-comm-mul-add"; "(+ ?c0 (* ?a0 ?b0))" => "(+ (* ?a0 ?b0 ) ?c0)"),
-            // rewrite!("associativity"; "(* ?a0 (* ?b0 ?c0))" => "(* (* ?b0 ?c0) ?a0)"),
-            // rewrite!("commutativity"; "(+ ?a0 (+ ?b0 ?c0))" => "(+ (+ ?b0 ?c0) ?c0)"),
         ];
 
-        rules.extend(helping_rules);
+
+
+        rules.extend(constant_folding_rules);
 
         let mut rules_info_med : HashMap<String, Vec<String>> = HashMap::new();
         let mut rules_med : Vec<Rewrite<VecLang, ConstantFold>> = Vec::new();
         let mut initial_rules_med : Vec<Rewrite<VecLang, ConstantFold>> = Vec::new();
 
         /************************************* rule generation **********************************/
-        operations_rules(
-            vector_width,
-            optimized_rw,
-            initial_operations.clone(),
-            &mut rules_info_med,
-            &mut initial_rules_med,
-            &mut rules_med
-        );
+        // operations_rules(
+        //     vector_width,
+        //     optimized_rw,
+        //     initial_operations.clone(),
+        //     &mut rules_info_med,
+        //     &mut initial_rules_med,
+        //     &mut rules_med
+        // );
 
-        rules_info.extend(rules_info_med.clone());
-        initial_rules.extend(initial_rules_med.clone());
-        rules.extend(rules_med.clone());
+        // rules_info.extend(rules_info_med.clone());
+        // initial_rules.extend(initial_rules_med.clone());
+        // rules.extend(rules_med.clone());
 
-        rules_info_med.clear();
-        rules_med.clear();
-        initial_rules_med.clear();
+        // rules_info_med.clear();
+        // rules_med.clear();
+        // initial_rules_med.clear();
 
         vectorization_rules(
             vector_width,
@@ -797,10 +1087,35 @@ pub fn print_egraph(
             &mut initial_rules_med,
             &mut rules_med
         );
+
         debug!("vectorization rules selected : {:?}", initial_rules_med);
+        rules_info.extend(rules_info_med.clone());
+        initial_rules.extend(initial_rules_med.clone());
+        rules.extend(rules_med.clone());
+
+       
+        rules_info_med.clear();
+        rules_med.clear();
+        initial_rules_med.clear();
+
+        balancing_rules(
+            optimized_rw,
+            initial_operations.clone(),
+            &mut rules_info_med,
+            &mut initial_rules_med,
+            &mut rules_med
+        );
+
+
+        debug!("balancing rules selected : {:?}", initial_rules_med);
         rules_info.extend(rules_info_med);
         initial_rules.extend(initial_rules_med);
         rules.extend(rules_med);
+        eprintln!("===============================================================");
+
+        for rw in initial_rules {
+            debug!("initial rules : {:?}", rw);
+        }
 
         /************************************* creating rule set **********************************/
         if exp_rules {
@@ -811,3 +1126,5 @@ pub fn print_egraph(
         }
 
     }
+
+   

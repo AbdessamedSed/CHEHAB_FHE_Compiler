@@ -20,7 +20,7 @@ Ciphertext recursive_sum(const std::vector<Ciphertext>& vals) {
 
 void fhe()
 {
-  size_t size = 128;
+  size_t size = 12;
   std::vector<Ciphertext> v1(size);
   std::vector<Ciphertext> v2(size);
   std::vector<Ciphertext> output_vec(size);

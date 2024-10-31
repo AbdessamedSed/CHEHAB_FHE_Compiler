@@ -159,8 +159,8 @@ where
 
             start_time: None,
             scheduler: Box::new(BackoffScheduler::new(
-                /* match_limit */ 5_000, /* better : 5000*/
-                /* ban_length */ 2, /* better: 0 */
+                /* match_limit */ 1_000, /* better : 5000*/
+                /* ban_length */ 2, /* better: 2 */
             )),
         }
     }
@@ -219,12 +219,13 @@ where
         self.egraph.rebuild();
         loop {
             if optimized_rw {
-                let iter = self.run_one_with_rule_filtering(
-                    &rules, 
-                    &initial_rules, 
-                    rules_info.clone(), 
-                    &mut operation_tracker,
-                );
+                // let iter = self.run_one_with_rule_filtering(
+                //     &rules, 
+                //     &initial_rules, 
+                //     rules_info.clone(), 
+                //     &mut operation_tracker,
+                // );
+                let iter = self.run_one_non_optimized_without_rule_filtering(&rules);
                 self.iterations.push(iter);
             } else {
                 let iter = self.run_one_non_optimized_without_rule_filtering(&rules);
@@ -275,6 +276,8 @@ where
     ) -> Iteration<IterData> {
         assert!(self.stop_reason.is_none());
 
+        eprintln!("hello from run_one optimized");
+
         info!("\nIteration {}", self.iterations.len());
         
         self.try_start();
@@ -298,6 +301,7 @@ where
 
 
         if i == 0 {
+            eprintln!("first iteration");
             result = result.and_then(|_| {
                 initial_rules.iter().try_for_each(|rw| {
                     debug!("Rewrite rule for first is : {:?}", rw.name.as_str());
@@ -307,7 +311,7 @@ where
                     let ms = self.scheduler.search_rewrite(i, &self.egraph, rw);
                     let total_matches: usize = ms.iter().map(|m| m.substs.len()).sum();
     
-                    debug!("Rewrite rule '{}' matched {} times.", rw.name, ms.len());
+                    eprintln!("Rewrite rule '{}' matched {} times.", rw.name.as_str(), ms.len());
     
     
                     if rw.name.as_str().starts_with("exp"){
@@ -329,19 +333,32 @@ where
                                         debug!("rw {:?} contains VecMul in rhs", rw.name);
                                         operation_tracker.insert("Mul".to_string());
                                     }
-                                    else if rhs.contains("Add") || rhs.contains("+") {    //VecLang:VecAdd or VecLang:+
+                                    if rhs.contains("Add") || rhs.contains("+") {    //VecLang:VecAdd or VecLang:+
                                         debug!("rw {:?} contains VecAdd in rhs", rw.name);
                                         operation_tracker.insert("Add".to_string());
                                     }
-                                    else if rhs.contains("Minus") ||rhs.contains("-"){    //VecLang:VecMinus or VecLang:-
+                                    if rhs.contains("Minus") ||rhs.contains("-"){    //VecLang:VecMinus or VecLang:-
                                         debug!("rw {:?} contains VecMinus in rhs", rw.name);
-                                        operation_tracker.insert("Sub".to_string());
+                                        operation_tracker.insert("Min".to_string());
                                     }
-                                    else if rhs.contains("Neg") { //VecLang:VecNeg
+                                    if rhs.contains("Neg") { //VecLang:VecNeg
                                         debug!("rw {:?} contains Neg in its rhs", rw.name);
                                         operation_tracker.insert("Neg".to_string());
-
                                     }
+
+                                    if rhs.contains("AddMul") {
+                                        debug!("rw {:?} contains AddMul in rhs", rw.name);
+                                        operation_tracker.insert("AddMul".to_string());
+                                    }
+                                    if rhs.contains("AddMin") {
+                                        debug!("rw {:?} contains AddMin in rhs", rw.name);
+                                        operation_tracker.insert("AddMin".to_string());
+                                    }
+                                    if rhs.contains("MinMul") {
+                                        debug!("rw {:?} contains MinMul in rhs", rw.name);
+                                        operation_tracker.insert("MinMul".to_string());
+                                    }
+                
                                 },
                                 None => ()
                             }
@@ -415,19 +432,30 @@ where
                                         debug!("rw {:?} contains VecMul in rhs", rw.name);
                                         operation_tracker.insert("Mul".to_string());
                                     }
-                                    else if rhs.contains("Add") || rhs.contains("+") {    //VecLang:VecAdd or VecLang:+
+                                    if rhs.contains("Add") || rhs.contains("+") {    //VecLang:VecAdd or VecLang:+
                                         debug!("rw {:?} contains VecAdd in rhs", rw.name);
                                         operation_tracker.insert("Add".to_string());
                                     }
-                                    else if rhs.contains("Minus") ||rhs.contains("-"){    //VecLang:VecMinus or VecLang:-
+                                    if rhs.contains("Minus") ||rhs.contains("-"){    //VecLang:VecMinus or VecLang:-
                                         debug!("rw {:?} contains VecMinus in rhs", rw.name);
-                                        operation_tracker.insert("Sub".to_string());
+                                        operation_tracker.insert("Min".to_string());
                                     }
-                                    else if rhs.contains("Neg") { //VecLang:VecNeg
+                                    if rhs.contains("Neg") { //VecLang:VecNeg
                                         debug!("rw {:?} contains Neg in its rhs", rw.name);
                                         operation_tracker.insert("Neg".to_string());
-
                                     }
+                                    if rhs.contains("AddMul") { //VecLang:VecNeg
+                                        debug!("rw {:?} contains AddMul in its rhs", rw.name);
+                                        operation_tracker.insert("AddMul".to_string());
+                                    }
+                                    if rhs.contains("AddMin") { //VecLang:VecNeg
+                                        debug!("rw {:?} contains AddMin in its rhs", rw.name);
+                                        operation_tracker.insert("AddMin".to_string());
+                                    }
+                                    if rhs.contains("MinMul") { //VecLang:VecNeg
+                                        debug!("rw {:?} contains MinMul in its rhs", rw.name);
+                                        operation_tracker.insert("MinMul".to_string());
+                                    } 
                                 }
                                 None => ()
                             }
@@ -566,7 +594,7 @@ where
                     let ms = self.scheduler.search_rewrite(i, &self.egraph, rw);
                     let total_matches: usize = ms.iter().map(|m| m.substs.len()).sum();
     
-                    debug!("Rewrite rule '{}' matched {} times.", rw.name, ms.len());
+                    eprintln!("Rewrite rule '{}' matched {} times.", rw.name.as_str(), ms.len());
     
     
                     if rw.name.as_str().starts_with("exp"){

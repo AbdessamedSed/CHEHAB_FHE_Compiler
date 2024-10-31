@@ -43,7 +43,7 @@ where
                 oredered_eclasses = Self::semi_topological_sort(egraph, root);
                 let end_sorting = start_sorting.elapsed();
 
-                debug!("time to sort is : {:?}", end_sorting);
+                eprintln!("time to sort is : {:?}", end_sorting);
                 extractor.find_costs(oredered_eclasses);
             } else {
                 extractor.find_costs(oredered_eclasses);
@@ -258,6 +258,8 @@ where
         let mut sub_classes: HashMap<Id, HashSet<Id>> = HashMap::new();
         let mut i = 0;
         let mut eclasses_iter: Vec<&EClass<L, N::Data>> = Vec::new();
+
+        // eprintln!("ordered eclasses : {:?}", oredered_eclasses);
 
         if oredered_eclasses.is_empty() {
             for ecl in self.egraph.classes() {
