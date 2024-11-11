@@ -7,6 +7,7 @@
 #endif
 #include <algorithm>
 #include <stack>
+#include <iostream>
 #include <stdexcept>
 #include <tuple>
 #include <utility>
@@ -72,7 +73,22 @@ bool Expr::EqualOpTermKey::operator()(const OpTermKey &lhs, const OpTermKey &rhs
   }
   return true;
 }
-
+/******************************************************************************/
+/*****************************************************************************/
+void Expr::update_negative_rotation_steps(int polynomial_modulus_degree) {
+    for (auto *term : terms_) {
+        // Check if the term's OpCode is of type rotate
+        if (term->op_code().type() == fheco::ir::OpCode::Type::rotate) {
+            // Update the term's OpCode with the new rotation step
+            int rotation_step = term->op_code_.steps();
+            if(rotation_step<0){
+              rotation_step = rotation_step + polynomial_modulus_degree>>1;
+              term->op_code_ = fheco::ir::OpCode::rotate(rotation_step);
+            }
+        }
+    }
+}
+/***********************************************************************/
 Term *Expr::insert_op(OpCode op_code, vector<Term *> operands, bool &inserted)
 {
   if (Compiler::cse_enabled())
@@ -103,7 +119,13 @@ Term *Expr::insert_op(OpCode op_code, vector<Term *> operands, bool &inserted)
 Term *Expr::insert_input(Term::Type type, InputTermInfo input_term_info)
 {
   Term *term = new Term(move(type));
-  inputs_info_.emplace(term, move(input_term_info));
+  //cout<<"place term in inputs_infos ==> ";
+  bool inserted = inputs_info_.emplace(term, move(input_term_info)).second;
+  //if (inserted){
+  //  std::cout<<"element has been inserted \n";
+  //}else{
+  // std::cout<<"element Not been inserted \n";
+  //}
   terms_.insert(term);
   return term;
 }
@@ -176,7 +198,7 @@ void Expr::replace(Term *term1, Term *term2)
   if (*term1 == *term2)
     return;
 
-  struct Call
+  struct Call 
   {
     Term *term1_;
     Term *term2_;
@@ -269,10 +291,12 @@ void Expr::update_term_type_cascade(Term *term)
 
 void Expr::set_output(const Term *term, OutputTermInfo output_term_info)
 {
-  if (outputs_info_.insert_or_assign(term, move(output_term_info)).second)
+  if (outputs_info_.insert_or_assign(term, move(output_term_info)).second){
+    output_keys_.push_back(term);  
     valid_top_sort_ = false;
+  }
 }
-
+/*************Need updates ***************/
 void Expr::unset_output(const Term *term)
 {
   if (outputs_info_.erase(term))
