@@ -1,0 +1,2 @@
+benchmark,add,sub,multiply_plain,rotate_rows,square,multiply,Depth,Multplicative Depth,compile_time( ms ),execution_time (ms)
+gx_kernel_8,16,0,0,0,0,14,9,3,611116,366

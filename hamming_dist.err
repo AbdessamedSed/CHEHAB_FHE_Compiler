@@ -1,0 +1,110 @@
+Loading module 'gcc/9.2.0'
+   Compiling egraphs-vectorization v0.1.0 (/scratch/as20733/CHEHAB/egraphs)
+warning: value assigned to `best_cost` is never read
+   --> src/rules.rs:140:13
+    |
+140 |     let mut best_cost = usize::MAX;
+    |             ^^^^^^^^^
+    |
+    = help: maybe it is overwritten before being read?
+    = note: `#[warn(unused_assignments)]` on by default
+
+warning: value assigned to `best_expr` is never read
+   --> src/rules.rs:141:13
+    |
+141 |     let mut best_expr: RecExpr<VecLang> = RecExpr::default();
+    |             ^^^^^^^^^
+    |
+    = help: maybe it is overwritten before being read?
+
+warning: unused variable: `sorting`
+  --> src/rules.rs:25:5
+   |
+25 |     sorting: bool,
+   |     ^^^^^^^ help: if this is intentional, prefix it with an underscore: `_sorting`
+   |
+   = note: `#[warn(unused_variables)]` on by default
+
+warning: unused variable: `end`
+   --> src/runner.rs:496:21
+    |
+496 |                 let end = start.elapsed();
+    |                     ^^^ help: if this is intentional, prefix it with an underscore: `_end`
+
+warning: variable does not need to be mutable
+   --> src/runner.rs:299:13
+    |
+299 |         let mut iterator_rules_for_applying_matches: &[&Rewrite<L, N>];
+    |             ----^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |             |
+    |             help: remove this `mut`
+    |
+    = note: `#[warn(unused_mut)]` on by default
+
+warning: unused variable: `end`
+   --> src/runner.rs:589:25
+    |
+589 |                     let end = start.elapsed();
+    |                         ^^^ help: if this is intentional, prefix it with an underscore: `_end`
+
+warning: unused variable: `end`
+   --> src/runner.rs:626:21
+    |
+626 |                 let end = start.elapsed();
+    |                     ^^^ help: if this is intentional, prefix it with an underscore: `_end`
+
+warning: unused variable: `rw`
+   --> src/runner.rs:891:34
+    |
+891 |         matches.iter().for_each(|rw| {
+    |                                  ^^ help: if this is intentional, prefix it with an underscore: `_rw`
+
+warning: function `is_vec_mul` is never used
+   --> src/rules.rs:703:8
+    |
+703 |     fn is_vec_mul(var1: &'static str,var2: &'static str,var3: &'static str,var4: &'static str,var5: &'static str,var6: &'static str,var7:...
+    |        ^^^^^^^^^^
+    |
+    = note: `#[warn(dead_code)]` on by default
+
+warning: call to `.clone()` on a reference in this situation does nothing
+   --> src/runner.rs:452:26
+    |
+452 |             initial_rules.clone()  // Make sure this is of type `Vec<&Rewrite<L, N>>`
+    |                          ^^^^^^^^ help: remove this redundant call
+    |
+    = note: the type `[&egg::Rewrite<L, N>]` does not implement `Clone`, so calling `clone` on `&[&egg::Rewrite<L, N>]` copies the reference, which does not do anything and can be removed
+    = note: `#[warn(noop_method_call)]` on by default
+
+warning: `egraphs-vectorization` (lib) generated 10 warnings (run `cargo fix --lib -p egraphs-vectorization` to apply 2 suggestions)
+    Finished `release` profile [optimized] target(s) in 4.65s
+     Running `/scratch/as20733/CHEHAB/egraphs/target/release/egraphs-vectorization ../expression.txt 1`
+Running egg with timeout 300s, width: 1, rule_filtering: false, sorting: false, exp-rules: false
+rule_filtering is false
+sorting is false
+exp_rules is false
+(Vec (+ ?a0 ?b0)) => (VecAdd (Vec ?a0) (Vec ?b0))
+report : Report { iterations: 19, stop_reason: Saturated, egraph_nodes: 304, egraph_classes: 225, memo_size: 304, rebuilds: 0, total_time: 0.001985953, search_time: 0.001112562, apply_time: 0.000653054, rebuild_time: 0.00021720799999999998 }
+E-graph built in 2.509298ms
+Stopped after 19 iterations, reason: Some(Saturated)
+final number of enodes : 304
+begining of extraction 0 .... 
+time to sort is : 76.865µs
+iteration number 1
+Iteration 1 took 226.255µs
+total_time to update is 0.0 for iteration 1
+iteration number 2
+Iteration 2 took 417.385µs
+total_time to update is 0.0 for iteration 2
+iteration number 3
+Iteration 3 took 408.357µs
+total_time to update is 0.0 for iteration 3
+Total number of iterations: 3
+Failed to compute cost for eclass 0: [Num(0)]
+display final results
+Expression extraction took 1.612502ms
+Final cost is 69247
+Extracted Expression : (VecAdd (VecAdd (VecAdd (VecAdd (VecAdd (VecAdd (VecAdd (VecAdd (VecAdd (VecAdd (VecAdd (VecAdd (VecAdd (VecAdd (VecAdd (VecMinus (VecAdd (Vec v1_0) (Vec v2_0)) (VecMul (VecMul (Vec v1_0) (Vec v2_0)) (Vec 2))) (VecMinus (VecAdd (Vec v1_1) (Vec v2_1)) (VecMul (Vec 2) (VecMul (Vec v1_1) (Vec v2_1))))) (VecMinus (VecAdd (Vec v1_2) (Vec v2_2)) (VecMul (Vec 2) (VecMul (Vec v1_2) (Vec v2_2))))) (VecMinus (VecAdd (Vec v1_3) (Vec v2_3)) (VecMul (Vec 2) (VecMul (Vec v1_3) (Vec v2_3))))) (VecMinus (VecAdd (Vec v1_4) (Vec v2_4)) (VecMul (Vec 2) (VecMul (Vec v1_4) (Vec v2_4))))) (VecMinus (VecAdd (Vec v1_5) (Vec v2_5)) (VecMul (Vec 2) (VecMul (Vec v1_5) (Vec v2_5))))) (VecMinus (VecAdd (Vec v1_6) (Vec v2_6)) (VecMul (Vec 2) (VecMul (Vec v1_6) (Vec v2_6))))) (VecMinus (VecAdd (Vec v1_7) (Vec v2_7)) (VecMul (Vec 2) (VecMul (Vec v1_7) (Vec v2_7))))) (VecMinus (VecAdd (Vec v1_8) (Vec v2_8)) (VecMul (Vec 2) (VecMul (Vec v1_8) (Vec v2_8))))) (VecMinus (VecAdd (Vec v1_9) (Vec v2_9)) (VecMul (Vec 2) (VecMul (Vec v1_9) (Vec v2_9))))) (VecMinus (VecAdd (Vec v1_10) (Vec v2_10)) (VecMul (Vec 2) (VecMul (Vec v1_10) (Vec v2_10))))) (VecMinus (VecAdd (Vec v1_11) (Vec v2_11)) (VecMul (Vec 2) (VecMul (Vec v1_11) (Vec v2_11))))) (VecMinus (VecAdd (Vec v1_12) (Vec v2_12)) (VecMul (Vec 2) (VecMul (Vec v1_12) (Vec v2_12))))) (VecMinus (VecAdd (Vec v1_13) (Vec v2_13)) (VecMul (Vec 2) (VecMul (Vec v1_13) (Vec v2_13))))) (VecMinus (VecAdd (Vec v1_14) (Vec v2_14)) (VecMul (Vec 2) (VecMul (Vec v1_14) (Vec v2_14))))) (VecMinus (VecAdd (Vec v1_15) (Vec v2_15)) (VecMul (Vec 2) (VecMul (Vec v1_15) (Vec v2_15)))))
+
+Cost: 69247
+Time taken: 4.899613ms to finish
