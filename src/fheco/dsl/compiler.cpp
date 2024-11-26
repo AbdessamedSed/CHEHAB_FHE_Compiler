@@ -600,6 +600,7 @@ void Compiler::gen_vectorized_code(const std::shared_ptr<ir::Func> &func, int wi
           expression += " 0 ";
         }
         expression += " )";
+
         // Write the expression to expression_file and call the vectorizer
         std::ofstream expression_file("../expression.txt");
         if (!expression_file)
@@ -607,6 +608,9 @@ void Compiler::gen_vectorized_code(const std::shared_ptr<ir::Func> &func, int wi
           std::cerr << "Error opening expression file." << std::endl;
           return;
         }
+        
+        std::cout << "The input expression is : " + expression << std::endl;
+
         expression_file << expression;
         expression_file.close();
         call_vectorizer(vector_width);

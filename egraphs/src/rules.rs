@@ -22,7 +22,7 @@ pub fn run(
     timeout: u64,
     vector_width: usize,
     rule_filtering: bool,
-    sorting: bool,
+    _sorting: bool,
     exp_rules: bool,
 ) -> (usize, RecExpr<VecLang>) {
     let optimized_rw = false;
@@ -137,8 +137,8 @@ pub fn run(
     let (eg, root) = (runner.egraph, runner.roots[0]);
     eprintln!("final number of enodes : {:?}", eg.total_size());
 
-    let mut best_cost = usize::MAX;
-    let mut best_expr: RecExpr<VecLang> = RecExpr::default();
+    let mut best_cost;
+    let mut best_expr; // best_expr: RecExpr<VecLang> = RecExpr::default();
     eprintln!("begining of extraction 0 .... ");
 
     /* we have 3 ways fot the extraction:

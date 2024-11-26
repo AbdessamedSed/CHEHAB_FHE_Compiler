@@ -449,7 +449,7 @@ where
         // }
         let filtered_clone;
         let cloned_rules = if i == 0 {
-            initial_rules.clone()  // Make sure this is of type `Vec<&Rewrite<L, N>>`
+            initial_rules  // Make sure this is of type `Vec<&Rewrite<L, N>>`
         } else {
             filtered_clone = filtered_rules.clone();
             &filtered_clone
@@ -493,7 +493,7 @@ where
                     debug!("Applied {} {} times", rw.name, actually_matched);
                 }
 
-                let end = start.elapsed();
+                let _end = start.elapsed();
                 // eprintln!("time for applying the rewrte rule {:?} is {:?}", rw.name, end);
 
                 self.check_limits()
@@ -586,7 +586,7 @@ where
                         debug!("Applied all {} matches for rule {}", total_matches, rw.name);
                     }
     
-                    let end = start.elapsed();
+                    let _end = start.elapsed();
     
                     // eprintln!("time for searching the rewrte rule {:?} is {:?}", rw.name, end);
     
@@ -623,7 +623,7 @@ where
                     debug!("Applied {} {} times", rw.name, actually_matched);
                 }
 
-                let end = start.elapsed();
+                let _end = start.elapsed();
                 // eprintln!("time for applying the rewrte rule {:?} is {:?}", rw.name, end);
 
                 self.check_limits()
@@ -889,7 +889,7 @@ where
         let total_len: usize = matches.iter().map(|m| m.substs.len()).sum();
         // eprintln!("name of rw is : {:?}", rewrite.name.as_str());
         matches.iter().for_each(|rw| {
-            // eprintln!("new matche : {:?} for eclass: {:}", rw.substs, rw.eclass);
+            debug!("new matche : {:?} for eclass: {:}", rw.substs, rw.eclass);
         });
         
         if total_len > threshold {
