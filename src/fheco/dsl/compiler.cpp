@@ -447,6 +447,7 @@ void Compiler::gen_vectorized_code(const std::shared_ptr<ir::Func> &func)
   expression += ")";
 
   // Write the expression to the expression_file
+  std::cout << "The input expression is : " + expression << std::endl;
   expression_file << expression << std::endl;
 
   // Overwrite the vectorized_code_file
@@ -608,7 +609,7 @@ void Compiler::gen_vectorized_code(const std::shared_ptr<ir::Func> &func, int wi
           std::cerr << "Error opening expression file." << std::endl;
           return;
         }
-        
+
         std::cout << "The input expression is : " + expression << std::endl;
 
         expression_file << expression;
