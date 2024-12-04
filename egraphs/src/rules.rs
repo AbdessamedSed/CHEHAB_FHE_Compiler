@@ -47,14 +47,14 @@ pub fn run(
             |  VecLang::Rot(_) 
             => continue,
 
-            VecLang::Add(_) 
-            | VecLang::VecAdd(_) => initial_operations.push("Add".to_string()),
+            VecLang::Add(_) | VecLang::VecAdd(_)
+            | VecLang::VecAddRotF(_) | VecLang::VecAddRotP(_) => initial_operations.push("Add".to_string()),
 
-            VecLang::Minus(_) 
-            | VecLang::VecMinus(_) => initial_operations.push("Min".to_string()),
+            VecLang::Minus(_) | VecLang::VecMinus(_)
+            | VecLang::VecMinusRotF(_) | VecLang::VecMinusRotP(_) => initial_operations.push("Min".to_string()),
 
-            VecLang::Mul(_) 
-            | VecLang::VecMul(_) => initial_operations.push("Mul".to_string()),
+            VecLang::Mul(_) | VecLang::VecMul(_) 
+            | VecLang::VecMulRotF(_) | VecLang::VecMulRotP(_) => initial_operations.push("Mul".to_string()),
 
             VecLang::Neg(_) => initial_operations.push("Neg".to_string())
         }
@@ -64,15 +64,26 @@ pub fn run(
     let mut initial_rules : Vec<Rewrite<VecLang, ConstantFold>> = Vec::new();
     let mut rules : Vec<Rewrite<VecLang, ConstantFold>> = Vec::new();
     // Initialize the rule set based on the vector width
-    generate_rules(
+    // generate_rules(
+    //     vector_width,
+    //     optimized_rw,
+    //     exp_rules, 
+    //     initial_operations,
+    //     &mut rules_info,
+    //     &mut initial_rules,
+    //     &mut rules
+    // );
+
+    generate_rules_unstructured_code(
         vector_width,
         optimized_rw,
-        exp_rules, 
         initial_operations,
         &mut rules_info,
         &mut initial_rules,
         &mut rules
     );
+
+    
 
     for rw in initial_rules.iter() {
         debug!("initial rules are: {:?}", rw.name.as_str());
@@ -92,11 +103,9 @@ pub fn run(
     // )".parse().unwrap();
 
 
-    // let start = "(Vec
-    // (+ a b)
-    // (+ d e)
-    // )
-    // ".parse().unwrap();
+    let start = "(
+        + (+ (+ a b) (+ c d)) (* e f)
+    )".parse().unwrap();
 
 
     // Start timing the e-graph building process
@@ -111,7 +120,7 @@ pub fn run(
 
     let runner = MyRunner::new(Default::default())
         .with_egraph(init_eg)
-        .with_expr(&prog)
+        .with_expr(&start)
         .with_node_limit(2_000_000)
         .with_time_limit(std::time::Duration::from_secs(timeout))
         .with_iter_limit(10_000)
@@ -139,7 +148,7 @@ pub fn run(
     // Extract the e-graph and the root node
     let (eg, root) = (runner.egraph, runner.roots[0]);
     eprintln!("final number of enodes : {:?}", eg.total_size());
-    // print_egraph(eg.clone());
+    print_egraph(eg.clone());
 
 
     let mut best_cost;
@@ -835,7 +844,7 @@ pub fn print_egraph(
     }
 
    
-    pub generate_rules_unstructured_code(
+    pub fn generate_rules_unstructured_code(
         vector_width: usize,
         optimized_rw: bool,
         initial_operations: Vec<String>,
@@ -844,4 +853,146 @@ pub fn print_egraph(
         rules: &mut Vec<Rewrite<VecLang, ConstantFold>>,
     ) {
 
+
+        let unstruct_rules: Vec<Rewrite<VecLang, ConstantFold>> = vec![
+            rewrite!("add-vec-1"; "(+ ?a0 ?b0)" => "(VecAdd (Vec ?a0 0) (Vec ?b0 0))"),
+            rewrite!("add-vec-2"; "(+ ?a0 (+ ?b0 ?c0))" => "(VecAddRotP (Vec ?a0 ?c0) (Vec ?b0 0) 1)"),
+            rewrite!("add-vec-4"; "(+ ?a0 (+ ?b0 (+ ?c0 ?d0)))" => "(VecAddRotF (Vec ?a0 ?c0) (Vec ?b0 ?d0) 1)"),
+            rewrite!("add-assoc"; "(+ (+ ?a0 ?b0) (+ ?c0 ?d0))" => "(+ ?a0 (+ ?b0 (+ ?c0 ?d0)))"),
+
+            rewrite!("mul-vec-1"; "(* ?a0 ?b0)" => "(VecMul (Vec ?a0 0) (Vec ?b0 0))"),
+            rewrite!("mul-vec-2"; "(* ?a0 (* ?b0 ?c0))" => "(VecMulRotP (Vec ?a0 ?c0) (Vec ?b0 0) 1)"),
+            rewrite!("mul-vec-3"; "(* (* ?a0 ?b0) (* ?c0 ?d0))" => "(VecMulRotF (Vec ?a0 ?c0) (Vec ?b0 ?d0) 1)"),
+            rewrite!("mul-vec-4"; "(* ?a0 (* ?b0 (* ?c0 ?d0)))" => "(VecMulRotF (Vec ?a0 ?c0) (Vec ?b0 ?d0) 1)"),
+            rewrite!("mul-assoc"; "(* ?a0 (* ?b0 ?c0))" => "(* (* ?a0 ?b0) ?c0)"),
+
+        ];
+
+        let max_vect_width = 10;
+        let max_num_elements = 20;
+        let mut lhs_pattern = Vec::new();
+
+        let mut rewrite_rules: Vec<Rewrite<VecLang, ConstantFold>> = Vec::new();
+
+        for vector_width_index in 2..=max_vect_width {
+            eprintln!("in this iteration, vector_width_index is {:?}", vector_width_index);
+
+            // generate all possible left hand sides
+            for num_ele_index in 2..=max_num_elements {
+                lhs_pattern = Vec::new();
+                // Generate the LHS pattern
+                for num_elements in 0..(num_ele_index - 1) {
+                    lhs_pattern.push(format!("(+ ?a{} ", num_elements));
+                }
+                lhs_pattern.push(format!("?a{}", num_ele_index - 1));
+                for _ in 0..(num_ele_index - 1) {
+                    lhs_pattern.push(')'.to_string());
+                }
+    
+                let lhs_full_pattern_string : String = lhs_pattern.concat().parse().unwrap();
+                debug!("lhs is {:?}", lhs_full_pattern_string);
+
+                let lhs_full_pattern : Pattern<VecLang> = lhs_pattern.concat().parse().unwrap();
+
+                // Extract all `?a_i` terms from the LHS pattern
+                let elements: Vec<String> = lhs_pattern
+                .iter()
+                .filter_map(|s| {
+                    // Find the starting position of "?a" in the string
+                    s.find("?a").map(|start| s[start..].split_whitespace().next().unwrap().to_string())
+                })
+                .collect();
+
+                let mut cpt = 0; // Counter for the current vector position
+                let mut rhs_pattern = Vec::new();
+                rhs_pattern.push("(Vec ".to_string());
+
+                let mut total_rotations = 0; 
+
+                for (index, element) in elements.iter().enumerate() {
+                    rhs_pattern.push(element.to_string()); // Add the current element
+                    cpt += 1;
+
+                    if cpt != 1 {       // there is no rotation for the first element
+                        total_rotations +=1;
+                    }
+                    // Check if the current vector is full
+                    if cpt == vector_width_index {
+                        rhs_pattern.push(") (Vec ".to_string()); // Close the current vector and start a new one
+                        cpt = 0; // Increment the vector count
+                    } else {
+                        rhs_pattern.push(" ".to_string()); // Add a space between elements
+                    }
+                }
+
+                let full_vectors = cpt == 0; // Determine whether the vectors are full or partial
+
+                // Handle the last (possibly partial) vector
+                if cpt > 0 {
+                    for _ in cpt..vector_width_index {
+                        rhs_pattern.push("0".to_string()); // Add padding zeros
+                        rhs_pattern.push(" ".to_string()); // Add space
+                    }
+                    rhs_pattern.pop(); // Remove the trailing space
+                    rhs_pattern.push(")".to_string()); // Close the last vector
+                    
+                } else {
+                    rhs_pattern.pop(); // Remove the unnecessary "(Vec " at the end if no padding is needed
+                    rhs_pattern.push(")".to_string()); // Close the last vector
+                }
+
+                // Add VecAddRotF or VecAddRotP based on the vector completeness
+                if full_vectors {
+                    rhs_pattern.insert(0, "(VecAddRotF ".to_string());
+                } else {
+                    rhs_pattern.insert(0, "(VecAddRotP ".to_string());
+                }
+
+                // Add the total rotation count
+                rhs_pattern.push(format!(" {})", total_rotations));
+
+                // Create the full RHS pattern as a string
+                let rhs_full_pattern_string: String = rhs_pattern.concat();
+                debug!("rhs is {:?}", rhs_full_pattern_string);
+
+                let rhs_full_pattern : Pattern<VecLang> = rhs_pattern.concat().parse().unwrap();
+               
+                let rule_name = format!("add-vec-{}-{}", num_ele_index, vector_width_index);
+                rules.push(rewrite!(rule_name.clone(); {lhs_full_pattern.clone()} => {rhs_full_pattern.clone()}));
+                
+            }   
+            
+        }
+        
+        rules.extend(unstruct_rules);
     }
+
+
+
+
+
+
+    // let mut cpt = 0; // Counter for the current vector position
+                // let mut rhs_pattern = Vec::new();
+                // rhs_pattern.push("(Vec ");
+                // for (index, element) in elements.iter().enumerate() {
+                //     rhs_pattern.push(element); // Add the current element
+                //     cpt += 1;
+        
+                //     // Check if the current vector is full
+                //     if cpt == vector_width_index {
+                //         rhs_pattern.push(") (Vec ");
+                //         cpt = 0;
+                //     } else {
+                //         rhs_pattern.push(" ");
+                //     }
+                // }
+                // for j in cpt..vector_width_index {
+                //     rhs_pattern.push("0 ");
+                // }
+                // let rhs_pattern = rhs_pattern.pop();
+                // rhs_pattern.push(")");
+
+                // let rhs_full_pattern : String = rhs_pattern.concat().parse().unwrap();
+                // eprintln!("rhs is {:?}", rhs_full_pattern);
+                

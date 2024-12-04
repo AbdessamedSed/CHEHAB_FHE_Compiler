@@ -46,22 +46,31 @@ impl CostFunction<VecLang> for VecCostFn<'_> {
 
         let op_cost = match enode {
             // You get literals for extremely cheap
-            VecLang::Num(..) => LITERAL,
+            VecLang::Num(value) => (*value * 4_000) as usize,
             VecLang::Symbol(..) => LITERAL,
 
             // Vectors are cheap if they have literal values
             VecLang::Vec(..) => STRUCTURE,
 
             // But scalar and vector ops cost something
-            VecLang::Add(..) => OP * 10000,
-            VecLang::Mul(..) => OP * 10000,
-            VecLang::Minus(..) => OP * 10000,
-            VecLang::Neg(..) => 10000 * OP,
-
+            VecLang::Add(..) => OP * 10_000,
+            VecLang::Mul(..) => OP * 10_000,
+            VecLang::Minus(..) => OP * 10_000,
+            VecLang::Neg(..) => 10_000 * OP,
+            
             VecLang::Rot(..) => VEC_OP * 50,
             VecLang::VecAdd(..) => VEC_OP,
             VecLang::VecMinus(..) => VEC_OP,
             VecLang::VecMul(..) => VEC_OP * 100,
+
+            VecLang::VecAddRotF(..) => VEC_OP * 10,
+            VecLang::VecMinusRotF(..) => VEC_OP * 10,
+            VecLang::VecMulRotF(..) => VEC_OP * 70,
+
+            VecLang::VecAddRotP(..) => VEC_OP * 5_000,
+            VecLang::VecMinusRotP(..) => VEC_OP * 5_000,
+            VecLang::VecMulRotP(..) => VEC_OP * 7_000,
+
 
             VecLang::VecNeg(..) => VEC_OP,
         };

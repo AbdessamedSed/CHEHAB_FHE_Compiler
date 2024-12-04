@@ -212,11 +212,15 @@ where
                 const OP: usize = 1;
     
                 let op_costs: usize = match op.as_str() {
-                    "+" | "*" | "-" | "neg" => OP * 10000,
+                    "+" | "*" | "-" | "neg" => OP * 10_000,
                     "<<" => VEC_OP * 50,
                     "Vec" => STRUCTURE,
-                    "VecAdd" | "VecMinus" => VEC_OP,
+                    "VecAdd" | "VecMinus" => VEC_OP * 30,
                     "VecMul" => VEC_OP * 100,
+                    "VecAddRotF" | "VecMinusRotF" => VEC_OP * 10,
+                    "VecMulRotF" => VEC_OP * 70,
+                    "VecAddRotP" | "VecMinusRotP" => VEC_OP * 5_000,
+                    "VecMulRotP" => VEC_OP * 7_000,
                     _ => LITERAL,
                 };
     

@@ -19,6 +19,15 @@ define_language! {
         "VecMinus" = VecMinus([Id; 2]),
         "VecMul" = VecMul([Id; 2]),
 
+        // Op for unstructured code
+        // Vector operations for full vectors => no 0 in any lane
+        "VecAddRotF" = VecAddRotF(Box<[Id]>),
+        "VecMinusRotF" = VecMinusRotF(Box<[Id]>),
+        "VecMulRotF" = VecMulRotF(Box<[Id]>),
+        // Vector operations for partial vectors
+        "VecAddRotP" = VecAddRotP(Box<[Id]>),
+        "VecMinusRotP" = VecMinusRotP(Box<[Id]>),
+        "VecMulRotP" = VecMulRotP(Box<[Id]>),
 
         // Vector operations that take 1 vector of inputs
         "VecNeg" = VecNeg([Id; 1]),
@@ -49,7 +58,9 @@ impl Analysis<VecLang> for ConstantFold {
             VecLang::Neg([a]) => -*x(a)?,
             VecLang::Rot([a, _b]) => *x(a)?,
             // VecAdd and similar operations return None to skip i32 representation
-            VecLang::VecAdd(_) | VecLang::VecMul(_) | VecLang::Vec(_) | VecLang::VecMinus(_) | VecLang::VecNeg(_) => return None,
+            VecLang::VecAdd(_) | VecLang::VecMul(_) | VecLang::Vec(_) | VecLang::VecMinus(_) | VecLang::VecNeg(_) | 
+            VecLang::VecAddRotF(_) | VecLang::VecMinusRotF(_) | VecLang::VecMulRotF(_) |
+            VecLang::VecAddRotP(_) | VecLang::VecMinusRotP(_) | VecLang::VecMulRotP(_) => return None,
             _ => return None,
         })
     }
