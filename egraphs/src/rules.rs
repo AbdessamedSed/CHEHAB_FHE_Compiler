@@ -27,7 +27,7 @@ pub fn run(
 ) -> (usize, RecExpr<VecLang>) {
 
     let optimized_rw = false;
-    let sorting = false;
+    let sorting = true;
 
     let mut initial_operations = Vec::new();
     eprintln!("vector width is {:?}", vector_width);
@@ -77,12 +77,20 @@ pub fn run(
     generate_rules_unstructured_code(
         vector_width,
         optimized_rw,
-        initial_operations,
+        initial_operations.clone(),
         &mut rules_info,
         &mut initial_rules,
         &mut rules
     );
 
+    generate_associativity_and_commutativity_rules(
+        vector_width,
+        optimized_rw,
+        initial_operations,
+        &mut rules_info,
+        &mut initial_rules,
+        &mut rules
+    );
     
 
     for rw in initial_rules.iter() {
@@ -103,9 +111,9 @@ pub fn run(
     // )".parse().unwrap();
 
 
-    let start = "(
-        + (+ (+ a b) (+ c d)) (* e f)
-    )".parse().unwrap();
+    // let start = "(
+    //     + (+ (+ a b) (+ c d)) (* e f)
+    // )".parse().unwrap();
 
 
     // Start timing the e-graph building process
@@ -120,7 +128,7 @@ pub fn run(
 
     let runner = MyRunner::new(Default::default())
         .with_egraph(init_eg)
-        .with_expr(&start)
+        .with_expr(&prog)
         .with_node_limit(2_000_000)
         .with_time_limit(std::time::Duration::from_secs(timeout))
         .with_iter_limit(10_000)
@@ -148,7 +156,7 @@ pub fn run(
     // Extract the e-graph and the root node
     let (eg, root) = (runner.egraph, runner.roots[0]);
     eprintln!("final number of enodes : {:?}", eg.total_size());
-    print_egraph(eg.clone());
+    // print_egraph(eg.clone());
 
 
     let mut best_cost;
@@ -855,47 +863,66 @@ pub fn print_egraph(
 
 
         let unstruct_rules: Vec<Rewrite<VecLang, ConstantFold>> = vec![
-            rewrite!("add-vec-1"; "(+ ?a0 ?b0)" => "(VecAdd (Vec ?a0 0) (Vec ?b0 0))"),
-            rewrite!("add-vec-2"; "(+ ?a0 (+ ?b0 ?c0))" => "(VecAddRotP (Vec ?a0 ?c0) (Vec ?b0 0) 1)"),
-            rewrite!("add-vec-4"; "(+ ?a0 (+ ?b0 (+ ?c0 ?d0)))" => "(VecAddRotF (Vec ?a0 ?c0) (Vec ?b0 ?d0) 1)"),
+            // rewrite!("add-vec-1"; "(+ ?a0 ?b0)" => "(VecAdd (Vec ?a0 0) (Vec ?b0 0))"),
+            // rewrite!("add-vec-2"; "(+ ?a0 (+ ?b0 ?c0))" => "(VecAddRotP (Vec ?a0 ?c0) (Vec ?b0 0) 1)"),
+            // rewrite!("add-vec-4"; "(+ ?a0 (+ ?b0 (+ ?c0 ?d0)))" => "(VecAddRotF (Vec ?a0 ?c0) (Vec ?b0 ?d0) 1)"),
             rewrite!("add-assoc"; "(+ (+ ?a0 ?b0) (+ ?c0 ?d0))" => "(+ ?a0 (+ ?b0 (+ ?c0 ?d0)))"),
 
-            rewrite!("mul-vec-1"; "(* ?a0 ?b0)" => "(VecMul (Vec ?a0 0) (Vec ?b0 0))"),
-            rewrite!("mul-vec-2"; "(* ?a0 (* ?b0 ?c0))" => "(VecMulRotP (Vec ?a0 ?c0) (Vec ?b0 0) 1)"),
-            rewrite!("mul-vec-3"; "(* (* ?a0 ?b0) (* ?c0 ?d0))" => "(VecMulRotF (Vec ?a0 ?c0) (Vec ?b0 ?d0) 1)"),
-            rewrite!("mul-vec-4"; "(* ?a0 (* ?b0 (* ?c0 ?d0)))" => "(VecMulRotF (Vec ?a0 ?c0) (Vec ?b0 ?d0) 1)"),
+            // rewrite!("mul-vec-1"; "(* ?a0 ?b0)" => "(VecMul (Vec ?a0 0) (Vec ?b0 0))"),
+            // rewrite!("mul-vec-2"; "(* ?a0 (* ?b0 ?c0))" => "(VecMulRotP (Vec ?a0 ?c0) (Vec ?b0 0) 1)"),
+            // rewrite!("mul-vec-3"; "(* (* ?a0 ?b0) (* ?c0 ?d0))" => "(VecMulRotF (Vec ?a0 ?c0) (Vec ?b0 ?d0) 1)"),
+            // rewrite!("mul-vec-4"; "(* ?a0 (* ?b0 (* ?c0 ?d0)))" => "(VecMulRotF (Vec ?a0 ?c0) (Vec ?b0 ?d0) 1)"),
             rewrite!("mul-assoc"; "(* ?a0 (* ?b0 ?c0))" => "(* (* ?a0 ?b0) ?c0)"),
 
         ];
 
-        let max_vect_width = 10;
-        let max_num_elements = 20;
-        let mut lhs_pattern = Vec::new();
+        let max_vect_width = 5;
+        let max_num_elements = 10;
+        let mut lhs_pattern_add = Vec::new();
+        let mut lhs_pattern_sub = Vec::new();
+        let mut lhs_pattern_mul = Vec::new();
 
         let mut rewrite_rules: Vec<Rewrite<VecLang, ConstantFold>> = Vec::new();
 
         for vector_width_index in 2..=max_vect_width {
-            eprintln!("in this iteration, vector_width_index is {:?}", vector_width_index);
+            debug!("in this iteration, vector_width_index is {:?}", vector_width_index);
 
             // generate all possible left hand sides
             for num_ele_index in 2..=max_num_elements {
-                lhs_pattern = Vec::new();
+                lhs_pattern_add = Vec::new();
+                lhs_pattern_sub = Vec::new();
+                lhs_pattern_mul = Vec::new();
+
                 // Generate the LHS pattern
                 for num_elements in 0..(num_ele_index - 1) {
-                    lhs_pattern.push(format!("(+ ?a{} ", num_elements));
+                    lhs_pattern_add.push(format!("(+ ?a{} ", num_elements));
+                    lhs_pattern_sub.push(format!("(- ?a{} ", num_elements));
+                    lhs_pattern_mul.push(format!("(* ?a{} ", num_elements));
                 }
-                lhs_pattern.push(format!("?a{}", num_ele_index - 1));
+                lhs_pattern_add.push(format!("?a{}", num_ele_index - 1));
+                lhs_pattern_sub.push(format!("?a{}", num_ele_index - 1));
+                lhs_pattern_mul.push(format!("?a{}", num_ele_index - 1));
+
                 for _ in 0..(num_ele_index - 1) {
-                    lhs_pattern.push(')'.to_string());
+                    lhs_pattern_add.push(')'.to_string());
+                    lhs_pattern_sub.push(')'.to_string());
+                    lhs_pattern_mul.push(')'.to_string());
                 }
     
-                let lhs_full_pattern_string : String = lhs_pattern.concat().parse().unwrap();
-                debug!("lhs is {:?}", lhs_full_pattern_string);
+                let full_lhs_pattern_add_string : String = lhs_pattern_add.concat().parse().unwrap();
+                let full_lhs_pattern_sub_string : String = lhs_pattern_sub.concat().parse().unwrap();
+                let full_lhs_pattern_mul_string : String = lhs_pattern_mul.concat().parse().unwrap();
 
-                let lhs_full_pattern : Pattern<VecLang> = lhs_pattern.concat().parse().unwrap();
+                debug!("lhs for add is {:?}", full_lhs_pattern_add_string);
+                debug!("lhs for sub is {:?}", full_lhs_pattern_sub_string);
+                debug!("lhs for mul is {:?}", full_lhs_pattern_mul_string);
+
+                let full_lhs_pattern_add : Pattern<VecLang> = lhs_pattern_add.concat().parse().unwrap();
+                let full_lhs_pattern_sub : Pattern<VecLang> = lhs_pattern_sub.concat().parse().unwrap();
+                let full_lhs_pattern_mul : Pattern<VecLang> = lhs_pattern_mul.concat().parse().unwrap();
 
                 // Extract all `?a_i` terms from the LHS pattern
-                let elements: Vec<String> = lhs_pattern
+                let elements: Vec<String> = lhs_pattern_add // or lhs_pattern_sub or lhs_pattern_mul
                 .iter()
                 .filter_map(|s| {
                     // Find the starting position of "?a" in the string
@@ -904,13 +931,21 @@ pub fn print_egraph(
                 .collect();
 
                 let mut cpt = 0; // Counter for the current vector position
-                let mut rhs_pattern = Vec::new();
-                rhs_pattern.push("(Vec ".to_string());
+                let mut rhs_pattern_add = Vec::new();
+                let mut rhs_pattern_sub = Vec::new();
+                let mut rhs_pattern_mul = Vec::new();
+
+                rhs_pattern_add.push("(Vec ".to_string());
+                rhs_pattern_sub.push("(Vec ".to_string());
+                rhs_pattern_mul.push("(Vec ".to_string());
 
                 let mut total_rotations = 0; 
 
                 for (index, element) in elements.iter().enumerate() {
-                    rhs_pattern.push(element.to_string()); // Add the current element
+                    rhs_pattern_add.push(element.to_string());
+                    rhs_pattern_sub.push(element.to_string());
+                    rhs_pattern_mul.push(element.to_string());
+
                     cpt += 1;
 
                     if cpt != 1 {       // there is no rotation for the first element
@@ -918,48 +953,80 @@ pub fn print_egraph(
                     }
                     // Check if the current vector is full
                     if cpt == vector_width_index {
-                        rhs_pattern.push(") (Vec ".to_string()); // Close the current vector and start a new one
-                        cpt = 0; // Increment the vector count
+                        rhs_pattern_add.push(") (Vec ".to_string());
+                        rhs_pattern_sub.push(") (Vec ".to_string());
+                        rhs_pattern_mul.push(") (Vec ".to_string());
+                        cpt = 0;
                     } else {
-                        rhs_pattern.push(" ".to_string()); // Add a space between elements
+                        rhs_pattern_add.push(" ".to_string());
+                        rhs_pattern_sub.push(" ".to_string());
+                        rhs_pattern_mul.push(" ".to_string());
                     }
                 }
 
                 let full_vectors = cpt == 0; // Determine whether the vectors are full or partial
 
-                // Handle the last (possibly partial) vector
                 if cpt > 0 {
                     for _ in cpt..vector_width_index {
-                        rhs_pattern.push("0".to_string()); // Add padding zeros
-                        rhs_pattern.push(" ".to_string()); // Add space
+                        rhs_pattern_add.push("0".to_string());
+                        rhs_pattern_add.push(" ".to_string());
+                        rhs_pattern_sub.push("0".to_string());
+                        rhs_pattern_sub.push(" ".to_string());
+                        rhs_pattern_mul.push("0".to_string());
+                        rhs_pattern_mul.push(" ".to_string());
                     }
-                    rhs_pattern.pop(); // Remove the trailing space
-                    rhs_pattern.push(")".to_string()); // Close the last vector
+                    rhs_pattern_add.pop();
+                    rhs_pattern_add.push(")".to_string());
+                    rhs_pattern_sub.pop();
+                    rhs_pattern_sub.push(")".to_string());
+                    rhs_pattern_mul.pop();
+                    rhs_pattern_mul.push(")".to_string());
                     
                 } else {
-                    rhs_pattern.pop(); // Remove the unnecessary "(Vec " at the end if no padding is needed
-                    rhs_pattern.push(")".to_string()); // Close the last vector
+                    rhs_pattern_add.pop();
+                    rhs_pattern_add.push(")".to_string());
+                    rhs_pattern_sub.pop();
+                    rhs_pattern_sub.push(")".to_string());
+                    rhs_pattern_mul.pop();
+                    rhs_pattern_mul.push(")".to_string());
                 }
 
                 // Add VecAddRotF or VecAddRotP based on the vector completeness
                 if full_vectors {
-                    rhs_pattern.insert(0, "(VecAddRotF ".to_string());
+                    rhs_pattern_add.insert(0, "(VecAddRotF ".to_string());
+                    rhs_pattern_sub.insert(0, "(VecMinusRotF ".to_string());
+                    rhs_pattern_mul.insert(0, "(VecMulRotF ".to_string());
                 } else {
-                    rhs_pattern.insert(0, "(VecAddRotP ".to_string());
+                    rhs_pattern_add.insert(0, "(VecAddRotP ".to_string());
+                    rhs_pattern_sub.insert(0, "(VecMinusRotP ".to_string());
+                    rhs_pattern_mul.insert(0, "(VecMulRotP ".to_string());
                 }
 
                 // Add the total rotation count
-                rhs_pattern.push(format!(" {})", total_rotations));
+                rhs_pattern_add.push(format!(" {})", total_rotations));
+                rhs_pattern_sub.push(format!(" {})", total_rotations));
+                rhs_pattern_mul.push(format!(" {})", total_rotations));
 
-                // Create the full RHS pattern as a string
-                let rhs_full_pattern_string: String = rhs_pattern.concat();
-                debug!("rhs is {:?}", rhs_full_pattern_string);
+                let full_rhs_pattern_add_string: String = rhs_pattern_add.concat();
+                let full_rhs_pattern_sub_string: String = rhs_pattern_sub.concat();
+                let full_rhs_pattern_mul_string: String = rhs_pattern_mul.concat();
 
-                let rhs_full_pattern : Pattern<VecLang> = rhs_pattern.concat().parse().unwrap();
-               
+                debug!("rhs for add is {:?}", full_rhs_pattern_add_string);
+                debug!("rhs for sub is {:?}", full_rhs_pattern_sub_string);
+                debug!("rhs for mul is {:?}", full_rhs_pattern_mul_string);                
+
+                let full_rhs_pattern_add : Pattern<VecLang> = rhs_pattern_add.concat().parse().unwrap();
+                let full_rhs_pattern_sub : Pattern<VecLang> = rhs_pattern_sub.concat().parse().unwrap();
+                let full_rhs_pattern_mul : Pattern<VecLang> = rhs_pattern_mul.concat().parse().unwrap();
+
                 let rule_name = format!("add-vec-{}-{}", num_ele_index, vector_width_index);
-                rules.push(rewrite!(rule_name.clone(); {lhs_full_pattern.clone()} => {rhs_full_pattern.clone()}));
-                
+                let rule_name = format!("sub-vec-{}-{}", num_ele_index, vector_width_index);
+                let rule_name = format!("mul-vec-{}-{}", num_ele_index, vector_width_index);
+
+                rules.push(rewrite!(rule_name.clone(); {full_lhs_pattern_add.clone()} => {full_rhs_pattern_add.clone()}));
+                rules.push(rewrite!(rule_name.clone(); {full_lhs_pattern_sub.clone()} => {full_rhs_pattern_sub.clone()}));
+                rules.push(rewrite!(rule_name.clone(); {full_lhs_pattern_mul.clone()} => {full_rhs_pattern_mul.clone()}));
+
             }   
             
         }
@@ -968,31 +1035,40 @@ pub fn print_egraph(
     }
 
 
+    pub fn generate_associativity_and_commutativity_rules(
+        vector_width: usize,
+        optimized_rw: bool,
+        initial_operations: Vec<String>,
+        rules_info: &mut HashMap<String, Vec<String>>,
+        initial_rules: &mut Vec<Rewrite<VecLang, ConstantFold>>,
+        rules: &mut Vec<Rewrite<VecLang, ConstantFold>>,
+    ) {
+
+        let associativity_rules: Vec<Rewrite<VecLang, ConstantFold>> = vec![
+            rewrite!("add-assoc-1"; "(+ (+ ?a0 ?b0) (+ ?c0 ?d0))" => "(+ ?a0 (+ ?b0 (+ ?c0 ?d0)))"),
+            rewrite!("add-assoc-2"; "(+ (+ (+ ?a0 ?b0) ?c0) ?d0)" => "(+ ?a0 (+ ?b0 (+ ?c0 ?d0)))"),
+            rewrite!("add-assoc-3"; "(+ ?a0 (+ (+ ?b0 ?c0) ?d0))" => "(+ ?a0 (+ ?b0 (+ ?c0 ?d0)))"),
+            rewrite!("add-assoc-4"; "(+ (+ ?a0 (+ ?b0 ?c0)) ?d0)" => "(+ ?a0 (+ ?b0 (+ ?c0 ?d0)))"),
+            rewrite!("add-assoc-5"; "(+ ?a0 (+ ?b0 (+ ?c0 ?d0)))" => "(+ ?a0 (+ ?b0 (+ ?c0 ?d0)))"),
+
+            rewrite!("sub-assoc-1"; "(- (- ?a0 ?b0) (- ?c0 ?d0))" => "(- ?a0 (- ?b0 (- ?c0 ?d0)))"),
+            rewrite!("sub-assoc-2"; "(- (- (- ?a0 ?b0) ?c0) ?d0)" => "(- ?a0 (- ?b0 (- ?c0 ?d0)))"),
+            rewrite!("sub-assoc-3"; "(- ?a0 (- (- ?b0 ?c0) ?d0))" => "(- ?a0 (- ?b0 (- ?c0 ?d0)))"),
+            rewrite!("sub-assoc-4"; "(- (- ?a0 (- ?b0 ?c0)) ?d0)" => "(- ?a0 (- ?b0 (- ?c0 ?d0)))"),
+            rewrite!("sub-assoc-5"; "(- ?a0 (- ?b0 (- ?c0 ?d0)))" => "(- ?a0 (- ?b0 (- ?c0 ?d0)))"),
+
+            rewrite!("mul-assoc-1"; "(* (* ?a0 ?b0) (* ?c0 ?d0))" => "(* ?a0 (* ?b0 (* ?c0 ?d0)))"),
+            rewrite!("mul-assoc-2"; "(* (* (* ?a0 ?b0) ?c0) ?d0)" => "(* ?a0 (* ?b0 (* ?c0 ?d0)))"),
+            rewrite!("mul-assoc-3"; "(* ?a0 (* (* ?b0 ?c0) ?d0))" => "(* ?a0 (* ?b0 (* ?c0 ?d0)))"),
+            rewrite!("mul-assoc-4"; "(* (* ?a0 (* ?b0 ?c0)) ?d0)" => "(* ?a0 (* ?b0 (* ?c0 ?d0)))"),
+            rewrite!("mul-assoc-5"; "(* ?a0 (* ?b0 (* ?c0 ?d0)))" => "(* ?a0 (* ?b0 (* ?c0 ?d0)))"),
+        ];
 
 
-
-
-    // let mut cpt = 0; // Counter for the current vector position
-                // let mut rhs_pattern = Vec::new();
-                // rhs_pattern.push("(Vec ");
-                // for (index, element) in elements.iter().enumerate() {
-                //     rhs_pattern.push(element); // Add the current element
-                //     cpt += 1;
+        rules.extend(associativity_rules);
         
-                //     // Check if the current vector is full
-                //     if cpt == vector_width_index {
-                //         rhs_pattern.push(") (Vec ");
-                //         cpt = 0;
-                //     } else {
-                //         rhs_pattern.push(" ");
-                //     }
-                // }
-                // for j in cpt..vector_width_index {
-                //     rhs_pattern.push("0 ");
-                // }
-                // let rhs_pattern = rhs_pattern.pop();
-                // rhs_pattern.push(")");
+    }
 
-                // let rhs_full_pattern : String = rhs_pattern.concat().parse().unwrap();
-                // eprintln!("rhs is {:?}", rhs_full_pattern);
-                
+
+
+   
