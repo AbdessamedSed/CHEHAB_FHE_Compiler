@@ -390,7 +390,7 @@ void Compiler::gen_vectorized_code(const std::shared_ptr<ir::Func> &func)
     {
       auto input_term = *it;
       //input_names += expr_printer.terms_str_exprs().at(input_term->id()) + " ";
-      input_names+=prepared_names[comp]+" ";
+      input_names += prepared_names[comp]+" ";
       //std::cout<<input_names<<" \n";
       input_types += (input_term->type() == ir::Term::Type::cipher) ? "1 " : "0 ";
       comp+=1;

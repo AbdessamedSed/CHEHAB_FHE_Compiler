@@ -5,13 +5,15 @@ use std::{
 };
 use std::time::Instant;
 use std::vec::Vec;
-use crate::cost;
 use std::time::Duration;
 use log::debug;
+use crate::cost;
+use crate::config::*;
 
 pub struct Extractor<'a, CF: cost::CostFunction<L>, L: Language, N: Analysis<L>> {
     cost_function: CF,
-    costs: HashMap<Id, (usize, L)>,
+    // the cost contains : depth, mul_depth, rotations, total operations
+    costs: HashMap<Id, (f64, f64, f64, f64, L)>,
     egraph: &'a egg::EGraph<L, N>,
 }
 
@@ -21,8 +23,6 @@ where
     L: Language + ToString  + std::fmt::Display,
     N: Analysis<L>,
 {
-
-
     pub fn new(
         egraph: &'a EGraph<L, N>,
         cost_function: CF,
@@ -54,18 +54,21 @@ where
 
     /// Find the cheapest (lowest cost) represented `RecExpr` in the
     /// given eclass.
-    pub fn find_best(&mut self, eclass: Id) -> (usize, RecExpr<L>) {
+    pub fn find_best(&mut self, eclass: Id) -> (f64, RecExpr<L>) {
         let mut expr = RecExpr::default();
         let (_, cost) = self.find_best_rec(&mut expr, eclass);
         (cost, expr)
     }
 
 
-    fn find_best_rec(&mut self, expr: &mut RecExpr<L>, eclass: Id) -> (Id, usize) {
+    fn find_best_rec(&mut self, expr: &mut RecExpr<L>, eclass: Id) -> (Id, f64) {
         let id = self.egraph.find(eclass);
     
        
-        let (best_cost, best_node) = match self.costs.get(&id) {
+        let (best_cost, best_node) = match self
+        .costs
+        .get(&id)
+        .map(|c| (ALPHA * c.0 + BETA * c.1 + GAMMA * c.2 + DELTA * c.3, c.4.clone())) {
             Some(result) => {
                 result.clone()
             }
@@ -144,21 +147,37 @@ where
     /// - `map`: A mapping of e-class IDs to their respective sub-classes.
     ///
     /// Returns:
-    /// - `Some(usize)`: The total cost of the node if all child costs are available.
+    /// - `Some(f64, f64, f64, f64)`: The total cost of the node if all child costs are available.
     /// - `None`: If the cost of the node cannot be calculated due to missing child costs.
-    fn node_total_cost(&mut self, node: &L, map: &mut HashMap<Id, HashSet<Id>>) -> Option<usize> {
+    fn node_total_cost(
+        &mut self, 
+        node: &L, 
+        map: &mut HashMap<Id, HashSet<Id>>
+    ) -> Option<(f64, f64, f64, f64)> {
         let eg = &self.egraph;
     
         // Check if all children have their costs calculated
         let has_cost = |&id| self.costs.contains_key(&eg.find(id));
+
         if node.children().iter().all(has_cost) {
             let costs = &self.costs;
-            let cost_f = |id| costs[&eg.find(id)].0.clone();
-            let mut cost = self.cost_function.cost(&node, cost_f);
+
+            let depth_f = |id| costs[&eg.find(id)].0.clone();
+            let mul_depth_f = |id| costs[&eg.find(id)].1.clone();
+            let rotations_f = |id| costs[&eg.find(id)].2.clone();
+            let operations_cost_f = |id| costs[&eg.find(id)].3.clone();
+            // let cost_f = |id| costs[&eg.find(id)].0.clone();
+
+            let depth = self.cost_function.depth(&node, depth_f);
+            let mul_depth = self.cost_function.mul_depth(&node, mul_depth_f);
+            let rotations = self.cost_function.rotations(&node, rotations_f);
+            let mut operations_cost = self.cost_function.operations_cost(&node, operations_cost_f);
+
+            // let mut cost = self.cost_function.cost(&node, cost_f);
             let children = node.children();
     
             if children.len() == 1 {
-                return Some(cost);
+                return Some((depth, mul_depth, rotations, operations_cost));
             }
     
             let mut shared_sub_classes: HashSet<Id> = HashSet::new();
@@ -174,17 +193,17 @@ where
     
                     // If both children are the same, subtract the cost of one child
                     if id_i == id_j {
-                        return Some(cost - costs[&eg.find(id_i)].0);
+                        return Some((depth, mul_depth, rotations, operations_cost - costs[&eg.find(id_i)].3));
                     }
     
                     let sub_classes_j = map.get(&id_j).unwrap();
     
                     // If one child belongs to the hierarchy of the other, subtract the contained class cost
                     if sub_classes_i.contains(&id_j) {
-                        return Some(cost - costs[&eg.find(id_j)].0);
+                        return Some((depth, mul_depth, rotations, operations_cost - costs[&eg.find(id_i)].3));
                     }
                     if sub_classes_j.contains(&id_i) {
-                        return Some(cost - costs[&eg.find(id_i)].0);
+                        return Some((depth, mul_depth, rotations, operations_cost - costs[&eg.find(id_i)].3));
                     }
     
                     // Calculate the intersection of both hierarchies and subtract the cost of shared operations
@@ -202,32 +221,32 @@ where
     
             // Adjust the cost based on shared sub-classes
             for id in shared_sub_classes {
-                let node = costs[&eg.find(id)].1.clone();
+                let node = costs[&eg.find(id)].4.clone();
                 let op = node.to_string();
     
                 // Define operation costs
-                const LITERAL: usize = 0;
-                const STRUCTURE: usize = 2000;
-                const VEC_OP: usize = 1;
-                const OP: usize = 1;
+                const LITERAL: f64 = 0.0;
+                const STRUCTURE: f64 = 2000.0;
+                const VEC_OP: f64 = 1.0;
+                const OP: f64 = 1.0;
     
-                let op_costs: usize = match op.as_str() {
-                    "+" | "*" | "-" | "neg" => OP * 10_000,
-                    "<<" => VEC_OP * 50,
+                let shared_op_costs: f64 = match op.as_str() {
+                    "+" | "*" | "-" | "neg" => OP * 10_000.0,
+                    "<<" => VEC_OP * 50.0,
                     "Vec" => STRUCTURE,
-                    "VecAdd" | "VecMinus" => VEC_OP * 30,
-                    "VecMul" => VEC_OP * 100,
-                    "VecAddRotF" | "VecMinusRotF" => VEC_OP * 10,
-                    "VecMulRotF" => VEC_OP * 70,
-                    "VecAddRotP" | "VecMinusRotP" => VEC_OP * 5_000,
-                    "VecMulRotP" => VEC_OP * 7_000,
+                    "VecAdd" | "VecMinus" => VEC_OP * 30.0,
+                    "VecMul" => VEC_OP * 100.0,
+                    "VecAddRotF" | "VecMinusRotF" => VEC_OP * 10.0,
+                    "VecMulRotF" => VEC_OP * 70.0,
+                    "VecAddRotP" | "VecMinusRotP" => VEC_OP * 5_000.0,
+                    "VecMulRotP" => VEC_OP * 7_000.0,
                     _ => LITERAL,
                 };
     
-                cost -= op_costs;
+                operations_cost -= shared_op_costs;
             }
     
-            return Some(cost);
+            return Some((depth, mul_depth, rotations, operations_cost));
         }
     
         None
@@ -297,10 +316,12 @@ where
                     }
                     // If the cost is already calculated and there is a change
                     (Some(old), Some(new)) => {
-                        if new.0 != old.0 {
-                            self.costs.insert(class.id, new);
+                        if ALPHA * new.0 + BETA * new.1 + GAMMA * new.2 + DELTA * new.3
+                        != ALPHA * new.0 + BETA * old.1 + GAMMA * old.2 + DELTA * old.3 {
+                            // self.costs.insert(class.id, new);
                             did_something = true;
                         }
+                        self.costs.insert(class.id, new);
                     }
 
                     _ => (),
@@ -311,7 +332,7 @@ where
             // Measure the time for the current iteration
             let duration = start_time.elapsed();
             eprintln!("Iteration {} took {:?}", i, duration);
-            // eprintln!("did_something is {:?}", did_something);
+            debug!("did_something is {:?}", did_something);
             eprintln!("total_time to update is {:?} for iteration {:}", time_to_pdate.as_secs_f64(), i);
         }
 
@@ -328,12 +349,16 @@ where
         }
     }
 
-    fn cmp(a: &Option<usize>, b: &Option<usize>) -> Ordering {
+    fn cmp(a: &Option<(f64, f64, f64, f64)>, b: &Option<(f64, f64, f64, f64)>) -> Ordering {
         match (a, b) {
             (None, None) => Ordering::Equal,
             (None, Some(_)) => Ordering::Greater,
             (Some(_), None) => Ordering::Less,
-            (Some(a), Some(b)) => a.partial_cmp(&b).unwrap(),
+            (Some(a), Some(b)) => {
+                let x = ALPHA * a.0 + BETA * a.1 + GAMMA * a.2 + DELTA * a.3;
+                let y = ALPHA * b.0 + BETA * b.1 + GAMMA * b.2 + DELTA * b.3;
+                x.partial_cmp(&y).unwrap()
+            },
         }
     }
     /// Calculates the cost of an e-class and determines the best e-node within it.
@@ -347,7 +372,7 @@ where
     /// - `eclass`: A reference to the e-class for which the cost is to be calculated.
     ///
     /// Returns:
-    /// - `Some((usize, L))`: A tuple containing the minimum cost and the corresponding best e-node.
+    /// - `Some((f64, f64, f64, f64, L))`: A tuple containing the minimum cost and the corresponding best e-node.
     /// - `None`: If no valid cost could be calculated for any e-node within the e-class.
 
     fn make_pass(
@@ -355,7 +380,7 @@ where
         sub_classes: &mut HashMap<Id, HashSet<Id>>,
         eclass: &EClass<L, N::Data>,
         // enode_descendents: HashMap<(L, Id), HashSet<Id>>,
-    ) -> Option<(usize, L)> {
+    ) -> Option<(f64, f64, f64, f64, L)> {
         // Record the start time for the entire function
         let start_time = Instant::now();
 
@@ -414,7 +439,7 @@ where
                 // Print the total time taken for the function
                 debug!("Total time for make_pass: {:?}", start_time.elapsed());
 
-                Some((cost, node.clone()))
+                Some((cost.0, cost.1, cost.2, cost.3, node.clone()))
             }
         }
     }

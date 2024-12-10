@@ -296,7 +296,7 @@ where
         let sample_size = 10;
         let mut start_search_time = Instant::now();
         let mut filtered_rules: Vec<&Rewrite<L, N>> = Vec::new();
-        let mut iterator_rules_for_applying_matches: &[&Rewrite<L, N>];
+        let  iterator_rules_for_applying_matches: &[&Rewrite<L, N>];
 
 
         if i == 0 {

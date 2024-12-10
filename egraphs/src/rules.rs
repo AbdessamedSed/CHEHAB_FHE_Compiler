@@ -24,7 +24,7 @@ pub fn run(
     rule_filtering: bool,
     _sorting: bool,
     exp_rules: bool,
-) -> (usize, RecExpr<VecLang>) {
+) -> (f64, RecExpr<VecLang>) {
 
     let optimized_rw = false;
     let sorting = true;
@@ -48,13 +48,16 @@ pub fn run(
             => continue,
 
             VecLang::Add(_) | VecLang::VecAdd(_)
-            | VecLang::VecAddRotF(_) | VecLang::VecAddRotP(_) => initial_operations.push("Add".to_string()),
+            | VecLang::VecAddRotF(_) | VecLang::VecAddRotP(_) 
+            => initial_operations.push("Add".to_string()),
 
             VecLang::Minus(_) | VecLang::VecMinus(_)
-            | VecLang::VecMinusRotF(_) | VecLang::VecMinusRotP(_) => initial_operations.push("Min".to_string()),
+            | VecLang::VecMinusRotF(_) | VecLang::VecMinusRotP(_) 
+            => initial_operations.push("Min".to_string()),
 
             VecLang::Mul(_) | VecLang::VecMul(_) 
-            | VecLang::VecMulRotF(_) | VecLang::VecMulRotP(_) => initial_operations.push("Mul".to_string()),
+            | VecLang::VecMulRotF(_) | VecLang::VecMulRotP(_) 
+            => initial_operations.push("Mul".to_string()),
 
             VecLang::Neg(_) => initial_operations.push("Neg".to_string())
         }
@@ -75,7 +78,6 @@ pub fn run(
     // );
 
     generate_rules_unstructured_code(
-        vector_width,
         optimized_rw,
         initial_operations.clone(),
         &mut rules_info,
@@ -84,7 +86,6 @@ pub fn run(
     );
 
     generate_associativity_and_commutativity_rules(
-        vector_width,
         optimized_rw,
         initial_operations,
         &mut rules_info,
@@ -129,7 +130,7 @@ pub fn run(
     let runner = MyRunner::new(Default::default())
         .with_egraph(init_eg)
         .with_expr(&prog)
-        .with_node_limit(2_000_000)
+        .with_node_limit(10_000_000)
         .with_time_limit(std::time::Duration::from_secs(timeout))
         .with_iter_limit(10_000)
         // .run(&initial_rules);
@@ -159,8 +160,8 @@ pub fn run(
     // print_egraph(eg.clone());
 
 
-    let mut best_cost;
-    let mut best_expr; // best_expr: RecExpr<VecLang> = RecExpr::default();
+    let best_cost: f64;
+    let best_expr; // best_expr: RecExpr<VecLang> = RecExpr::default();
     eprintln!("begining of extraction 0 .... ");
 
     /* we have 3 ways fot the extraction:
@@ -699,60 +700,6 @@ pub fn print_egraph(
 
     }
 
-    pub fn is_vec_op(egraph: &EGraph<VecLang, ConstantFold>, id: Id) -> bool {
-        egraph[id].nodes.iter().any(|node| matches!(node, VecLang::Vec(_)))
-    }
-
-    fn is_vec(var1: &'static str,var2: &'static str,var3: &'static str,var4: &'static str) -> impl Fn(&mut EGraph<VecLang, ConstantFold>, Id, &Subst) -> bool {
-        let var1_str = var1.parse().unwrap();
-        let var2_str = var2.parse().unwrap();
-        let var3_str = var3.parse().unwrap();
-        let var4_str = var4.parse().unwrap();
-        move |egraph : &mut EGraph<VecLang, ConstantFold>, _, subst| {
-            let nodes1 = &egraph[subst[var1_str]].nodes ;
-            let nodes2 = &egraph[subst[var2_str]].nodes ;
-            let nodes3 = &egraph[subst[var3_str]].nodes ;
-            let nodes4 = &egraph[subst[var4_str]].nodes ;
-            let is_vector1 = nodes1.iter().any(|n| matches!(n, VecLang::Vec(_)));
-            let is_vector2 = nodes2.iter().any(|n| matches!(n, VecLang::Vec(_)));
-            let is_vector3 = nodes3.iter().any(|n| matches!(n, VecLang::Vec(_)));
-            let is_vector4 = nodes4.iter().any(|n| matches!(n, VecLang::Vec(_)));
-    
-            is_vector1&&is_vector2&&is_vector3&&is_vector4
-        }
-    }
-
-    fn is_vec_mul(var1: &'static str,var2: &'static str,var3: &'static str,var4: &'static str,var5: &'static str,var6: &'static str,var7: &'static str,var8: &'static str) -> impl Fn(&mut EGraph<VecLang, ConstantFold>, Id, &Subst) -> bool {
-        let var1_str = var1.parse().unwrap();
-        let var2_str = var2.parse().unwrap();
-        let var3_str = var3.parse().unwrap();
-        let var4_str = var4.parse().unwrap();
-        let var5_str = var5.parse().unwrap();
-        let var6_str = var6.parse().unwrap();
-        let var7_str = var7.parse().unwrap();
-        let var8_str = var8.parse().unwrap();
-        move |egraph : &mut EGraph<VecLang, ConstantFold>, _, subst| {
-            let nodes1 = &egraph[subst[var1_str]].nodes ;
-            let nodes2 = &egraph[subst[var2_str]].nodes ;
-            let nodes3 = &egraph[subst[var3_str]].nodes ;
-            let nodes4 = &egraph[subst[var4_str]].nodes ;
-            let nodes5 = &egraph[subst[var5_str]].nodes ;
-            let nodes6 = &egraph[subst[var6_str]].nodes ;
-            let nodes7 = &egraph[subst[var7_str]].nodes ;
-            let nodes8 = &egraph[subst[var8_str]].nodes ;
-            let is_vector1 = nodes1.iter().any(|n| matches!(n, VecLang::Vec(_)));
-            let is_vector2 = nodes2.iter().any(|n| matches!(n, VecLang::Vec(_)));
-            let is_vector3 = nodes3.iter().any(|n| matches!(n, VecLang::Vec(_)));
-            let is_vector4 = nodes4.iter().any(|n| matches!(n, VecLang::Vec(_)));
-            let is_vector5 = nodes5.iter().any(|n| matches!(n, VecLang::Vec(_)));
-            let is_vector6 = nodes6.iter().any(|n| matches!(n, VecLang::Vec(_)));
-            let is_vector7 = nodes7.iter().any(|n| matches!(n, VecLang::Vec(_)));
-            let is_vector8 = nodes8.iter().any(|n| matches!(n, VecLang::Vec(_)));
-    
-            is_vector1&&is_vector2&&is_vector3&&is_vector4&&is_vector5&&is_vector6&&is_vector7&&is_vector8
-        }
-    }
-
 
     pub fn generate_rules(
         vector_width: usize,
@@ -853,45 +800,24 @@ pub fn print_egraph(
 
    
     pub fn generate_rules_unstructured_code(
-        vector_width: usize,
-        optimized_rw: bool,
-        initial_operations: Vec<String>,
-        rules_info: &mut HashMap<String, Vec<String>>,
-        initial_rules: &mut Vec<Rewrite<VecLang, ConstantFold>>,
+        _optimized_rw: bool,
+        _initial_operations: Vec<String>,
+        _rules_info: &mut HashMap<String, Vec<String>>,
+        _initial_rules: &mut Vec<Rewrite<VecLang, ConstantFold>>,
         rules: &mut Vec<Rewrite<VecLang, ConstantFold>>,
     ) {
 
-
-        let unstruct_rules: Vec<Rewrite<VecLang, ConstantFold>> = vec![
-            // rewrite!("add-vec-1"; "(+ ?a0 ?b0)" => "(VecAdd (Vec ?a0 0) (Vec ?b0 0))"),
-            // rewrite!("add-vec-2"; "(+ ?a0 (+ ?b0 ?c0))" => "(VecAddRotP (Vec ?a0 ?c0) (Vec ?b0 0) 1)"),
-            // rewrite!("add-vec-4"; "(+ ?a0 (+ ?b0 (+ ?c0 ?d0)))" => "(VecAddRotF (Vec ?a0 ?c0) (Vec ?b0 ?d0) 1)"),
-            rewrite!("add-assoc"; "(+ (+ ?a0 ?b0) (+ ?c0 ?d0))" => "(+ ?a0 (+ ?b0 (+ ?c0 ?d0)))"),
-
-            // rewrite!("mul-vec-1"; "(* ?a0 ?b0)" => "(VecMul (Vec ?a0 0) (Vec ?b0 0))"),
-            // rewrite!("mul-vec-2"; "(* ?a0 (* ?b0 ?c0))" => "(VecMulRotP (Vec ?a0 ?c0) (Vec ?b0 0) 1)"),
-            // rewrite!("mul-vec-3"; "(* (* ?a0 ?b0) (* ?c0 ?d0))" => "(VecMulRotF (Vec ?a0 ?c0) (Vec ?b0 ?d0) 1)"),
-            // rewrite!("mul-vec-4"; "(* ?a0 (* ?b0 (* ?c0 ?d0)))" => "(VecMulRotF (Vec ?a0 ?c0) (Vec ?b0 ?d0) 1)"),
-            rewrite!("mul-assoc"; "(* ?a0 (* ?b0 ?c0))" => "(* (* ?a0 ?b0) ?c0)"),
-
-        ];
-
         let max_vect_width = 5;
         let max_num_elements = 10;
-        let mut lhs_pattern_add = Vec::new();
-        let mut lhs_pattern_sub = Vec::new();
-        let mut lhs_pattern_mul = Vec::new();
-
-        let mut rewrite_rules: Vec<Rewrite<VecLang, ConstantFold>> = Vec::new();
-
+       
         for vector_width_index in 2..=max_vect_width {
             debug!("in this iteration, vector_width_index is {:?}", vector_width_index);
 
             // generate all possible left hand sides
             for num_ele_index in 2..=max_num_elements {
-                lhs_pattern_add = Vec::new();
-                lhs_pattern_sub = Vec::new();
-                lhs_pattern_mul = Vec::new();
+                let mut lhs_pattern_add = Vec::new();
+                let mut lhs_pattern_sub = Vec::new();
+                let mut lhs_pattern_mul = Vec::new();
 
                 // Generate the LHS pattern
                 for num_elements in 0..(num_ele_index - 1) {
@@ -913,7 +839,7 @@ pub fn print_egraph(
                 let full_lhs_pattern_sub_string : String = lhs_pattern_sub.concat().parse().unwrap();
                 let full_lhs_pattern_mul_string : String = lhs_pattern_mul.concat().parse().unwrap();
 
-                debug!("lhs for add is {:?}", full_lhs_pattern_add_string);
+                eprintln!("lhs for add is {:?}", full_lhs_pattern_add_string);
                 debug!("lhs for sub is {:?}", full_lhs_pattern_sub_string);
                 debug!("lhs for mul is {:?}", full_lhs_pattern_mul_string);
 
@@ -930,6 +856,10 @@ pub fn print_egraph(
                 })
                 .collect();
 
+                let num_elements = elements.len();
+                let half_elements = num_elements / 2;
+                let modulo_results = num_elements % 2;
+
                 let mut cpt = 0; // Counter for the current vector position
                 let mut rhs_pattern_add = Vec::new();
                 let mut rhs_pattern_sub = Vec::new();
@@ -941,7 +871,7 @@ pub fn print_egraph(
 
                 let mut total_rotations = 0; 
 
-                for (index, element) in elements.iter().enumerate() {
+                for (_index, element) in elements.iter().enumerate() {
                     rhs_pattern_add.push(element.to_string());
                     rhs_pattern_sub.push(element.to_string());
                     rhs_pattern_mul.push(element.to_string());
@@ -1011,7 +941,7 @@ pub fn print_egraph(
                 let full_rhs_pattern_sub_string: String = rhs_pattern_sub.concat();
                 let full_rhs_pattern_mul_string: String = rhs_pattern_mul.concat();
 
-                debug!("rhs for add is {:?}", full_rhs_pattern_add_string);
+                eprintln!("rhs for add is {:?}", full_rhs_pattern_add_string);
                 debug!("rhs for sub is {:?}", full_rhs_pattern_sub_string);
                 debug!("rhs for mul is {:?}", full_rhs_pattern_mul_string);                
 
@@ -1019,28 +949,26 @@ pub fn print_egraph(
                 let full_rhs_pattern_sub : Pattern<VecLang> = rhs_pattern_sub.concat().parse().unwrap();
                 let full_rhs_pattern_mul : Pattern<VecLang> = rhs_pattern_mul.concat().parse().unwrap();
 
-                let rule_name = format!("add-vec-{}-{}", num_ele_index, vector_width_index);
-                let rule_name = format!("sub-vec-{}-{}", num_ele_index, vector_width_index);
-                let rule_name = format!("mul-vec-{}-{}", num_ele_index, vector_width_index);
+                let rule_name_add = format!("add-vec-{}-{}", num_ele_index, vector_width_index);
+                let rule_name_sub = format!("sub-vec-{}-{}", num_ele_index, vector_width_index);
+                let rule_name_mul = format!("mul-vec-{}-{}", num_ele_index, vector_width_index);
 
-                rules.push(rewrite!(rule_name.clone(); {full_lhs_pattern_add.clone()} => {full_rhs_pattern_add.clone()}));
-                rules.push(rewrite!(rule_name.clone(); {full_lhs_pattern_sub.clone()} => {full_rhs_pattern_sub.clone()}));
-                rules.push(rewrite!(rule_name.clone(); {full_lhs_pattern_mul.clone()} => {full_rhs_pattern_mul.clone()}));
+                rules.push(rewrite!(rule_name_add.clone(); {full_lhs_pattern_add.clone()} => {full_rhs_pattern_add.clone()}));
+                rules.push(rewrite!(rule_name_sub.clone(); {full_lhs_pattern_sub.clone()} => {full_rhs_pattern_sub.clone()}));
+                rules.push(rewrite!(rule_name_mul.clone(); {full_lhs_pattern_mul.clone()} => {full_rhs_pattern_mul.clone()}));
 
             }   
             
         }
         
-        rules.extend(unstruct_rules);
     }
 
 
     pub fn generate_associativity_and_commutativity_rules(
-        vector_width: usize,
-        optimized_rw: bool,
-        initial_operations: Vec<String>,
-        rules_info: &mut HashMap<String, Vec<String>>,
-        initial_rules: &mut Vec<Rewrite<VecLang, ConstantFold>>,
+        _optimized_rw: bool,
+        _initial_operations: Vec<String>,
+        _rules_info: &mut HashMap<String, Vec<String>>,
+        _initial_rules: &mut Vec<Rewrite<VecLang, ConstantFold>>,
         rules: &mut Vec<Rewrite<VecLang, ConstantFold>>,
     ) {
 
