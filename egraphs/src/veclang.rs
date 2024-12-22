@@ -21,13 +21,13 @@ define_language! {
 
         // Op for unstructured code
         // Vector operations for full vectors => no 0 in any lane
-        "VecAddRotF" = VecAddRotF(Box<[Id]>),
-        "VecMinusRotF" = VecMinusRotF(Box<[Id]>),
-        "VecMulRotF" = VecMulRotF(Box<[Id]>),
+        "VecAddRotF" = VecAddRotF([Id; 3]),
+        "VecMinusRotF" = VecMinusRotF([Id; 3]),
+        "VecMulRotF" = VecMulRotF([Id; 3]),
         // Vector operations for partial vectors
-        "VecAddRotP" = VecAddRotP(Box<[Id]>),
-        "VecMinusRotP" = VecMinusRotP(Box<[Id]>),
-        "VecMulRotP" = VecMulRotP(Box<[Id]>),
+        "VecAddRotP" = VecAddRotP([Id; 3]),
+        "VecMinusRotP" = VecMinusRotP([Id; 3]),
+        "VecMulRotP" = VecMulRotP([Id; 3]),
 
         // Vector operations that take 1 vector of inputs
         "VecNeg" = VecNeg([Id; 1]),

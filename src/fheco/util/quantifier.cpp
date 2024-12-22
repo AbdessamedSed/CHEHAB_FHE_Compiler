@@ -10,6 +10,7 @@
 #include <tuple>
 #include <unordered_set>
 #include <utility>
+#include <iostream>
 
 using namespace std;
 
@@ -277,6 +278,7 @@ void Quantifier::count_terms_classes()
           rotation_keys_steps.insert(term->op_code().steps());
           ++captured_terms_count_;
           ++rotate_total_;
+        
           auto [it, inserted] = rotate_counts_.emplace(CAOpInfo{arg_info.opposite_level_, arg_info.size_}, 1);
           if (!inserted)
             ++it->second;

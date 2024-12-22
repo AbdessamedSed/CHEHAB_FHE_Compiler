@@ -46,6 +46,20 @@ fn main() {
         .and_then(|t| t.parse::<u64>().ok())
         .unwrap_or(300);
     let prog_str = fs::read_to_string(path).expect("Failed to read the input file.");
+    eprintln!("the input expression is : {:?}", prog_str);
+    let mut prog_str = prog_str.trim().to_string(); // Trim any leading/trailing whitespace
+
+    if prog_str.starts_with("(Vec") {
+        // Remove "(Vec" at the start
+        prog_str = prog_str.strip_prefix("(Vec ").unwrap_or(&prog_str).to_string();
+
+        // Remove the last character (if it exists)
+        prog_str.pop();
+        prog_str.pop();
+    }
+
+    // Print the cleaned-up expression
+    eprintln!("The cleaned expression is: {:?}", prog_str);
     let prog = prog_str.parse().unwrap();
     let vector_width: usize = matches
         .value_of("vector_width")
@@ -85,6 +99,7 @@ fn main() {
     let duration = start_time.elapsed();
 
     // Print the results
+
     println!("{}", best.to_string()); /* Pretty print with width 80 */
     eprintln!("\nCost: {}", cost);
     eprintln!("Time taken: {:?} to finish", duration);

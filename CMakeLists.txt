@@ -38,3 +38,6 @@ add_subdirectory(benchmarks/roberts_cross)
 # add_subdirectory(benchmarks/roberts_cross_porcupine)
 # add_subdirectory(benchmarks/sharpening_filter_heco)
 add_subdirectory(benchmarks/sobel)
+
+add_subdirectory(benchmarks/polynomials_coyote)
+add_subdirectory(benchmarks/manual_benchmark)
