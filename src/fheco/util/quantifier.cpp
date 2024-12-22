@@ -276,9 +276,12 @@ void Quantifier::count_terms_classes()
           const auto &arg_info = ctxt_terms_info.find(term->operands()[0])->second;
           ctxt_terms_info.emplace(term, CtxtTermInfo{arg_info.opposite_level_, arg_info.size_});
           rotation_keys_steps.insert(term->op_code().steps());
-          ++captured_terms_count_;
-          ++rotate_total_;
-        
+          // ++captured_terms_count_;
+          // ++rotate_total_;
+          captured_terms_count_ += term->op_code().steps();
+          rotate_total_ += term->op_code().steps();
+          std::cout << "captured_terms_count_ = " << captured_terms_count_ << std::endl;
+          std::cout << "rotate_total_ = " << rotate_total_ << std::endl;
           auto [it, inserted] = rotate_counts_.emplace(CAOpInfo{arg_info.opposite_level_, arg_info.size_}, 1);
           if (!inserted)
             ++it->second;
