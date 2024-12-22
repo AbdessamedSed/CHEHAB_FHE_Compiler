@@ -1632,7 +1632,7 @@ void Compiler::format_vectorized_code(const std::shared_ptr<ir::Func> &func)
     std::cout<<"==> constant folding Finished\n"; 
     vector<string> labels = {};
     for (const auto& pair : inputs_entries) {
-      std::cout << "pair.first = " << pair.first << std::endl;
+      // std::cout << "pair.first = " << pair.first << std::endl;
       labels.push_back(pair.first);  // Access the key via pair.first
     }
     unordered_map<string,int> inputs_occurences ={};

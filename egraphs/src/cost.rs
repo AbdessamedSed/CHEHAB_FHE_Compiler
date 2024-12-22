@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 
 use egg::*;
+use log::debug;
 
 use crate::veclang::{Egraph, VecLang};
 
@@ -81,15 +82,48 @@ impl CostFunction<VecLang> for VecCostFn<'_> {
     where
         C: FnMut(Id) -> Self::Cost,
     {
+        // Assign a base cost for specific operations
         let op_cost = match enode {
             VecLang::VecAddRotF(..) | VecLang::VecAddRotP(..) |
             VecLang::VecMinusRotF(..) | VecLang::VecMinusRotP(..) |
             VecLang::VecMulRotF(..) | VecLang::VecMulRotP(..) => 1.0,
             _ => 0.0,
         };
-        
+    
+        if matches!(
+            enode,
+            VecLang::VecAddRotF(..)
+                | VecLang::VecAddRotP(..)
+                | VecLang::VecMinusRotF(..)
+                | VecLang::VecMinusRotP(..)
+                | VecLang::VecMulRotF(..)
+                | VecLang::VecMulRotP(..)
+        ) {
+            if let Some(rotation_node) = enode.children().last() {
+                let eclass = &self.egraph[*rotation_node];
+                if let Some(node) = eclass.nodes.get(0) {
+                    if let VecLang::Num(value) = node {
+                        let num_rotations = *value as f64;
+                        debug!("Rotation value: {:?}", num_rotations);
+    
+                        // Compute the rotation cost
+                        let rotation_cost = op_cost * num_rotations;
+                        let children_cost = enode.fold(0.0, |sum, id| sum + costs(id));
+                        return rotation_cost + children_cost;
+
+                    } else {
+                        eprintln!("Node is not a Num variant");
+                    }
+                } else {
+                    eprintln!("No nodes found in eclass");
+                }
+            }
+        }
+    
         op_cost + enode.fold(0.0, |sum, id| sum + costs(id))
     }
+    
+
 
     fn operations_cost<C>(&mut self, enode: &VecLang, mut costs: C) -> Self::Cost
     where
