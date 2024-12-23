@@ -135,7 +135,7 @@ int main(int argc, char **argv) {
             throw logic_error("Failed to create source file");
         }
         cout << " window is " << window << endl;
-        Compiler::gen_vectorized_code(func, window);
+        Compiler::gen_vectorized_code(func, window /*is_structured*/);  // add a flag to specify if the benchmark is structured or no
         auto ruleset = Compiler::Ruleset::ops_cost;
         auto rewrite_heuristic = trs::RewriteHeuristic::bottom_up;
         Compiler::compile(func, ruleset, rewrite_heuristic, header_os, gen_name + ".hpp", source_os);
