@@ -731,304 +731,6 @@ pub fn print_egraph(
         }
     }
 
-    pub fn balancing_rules(
-        optimized_rw: bool,
-        initial_operations: Vec<String>,
-        rules_info: &mut HashMap<String, Vec<String>>,
-        initial_rules: &mut Vec<Rewrite<VecLang, ConstantFold>>,
-        rules: &mut Vec<Rewrite<VecLang, ConstantFold>>,
-    ) {
-        let assoc_balan_add: Vec<Rewrite<VecLang, ConstantFold>> = vec![
-            rewrite!("assoc-balan-add-1"; 
-            "(VecAdd ?x (VecAdd ?y (VecAdd ?z ?t)))" => 
-            "(VecAdd (VecAdd ?x ?y) (VecAdd ?z ?t))"
-            //if is_vec("?x","?y","?z","?t")
-            ),
-            rewrite!("assoc-balan-add-2"; 
-            "(VecAdd ?x (VecAdd (VecAdd ?z ?t) ?y))" => 
-            "(VecAdd (VecAdd ?x ?z) (VecAdd ?t ?y))"
-            //if is_vec("?x","?z","?t","?y")
-            ),
-            rewrite!("assoc-balan-add-3"; 
-            "(VecAdd (VecAdd (VecAdd ?x ?y) ?z) ?t)" => 
-            "(VecAdd (VecAdd ?x ?y) (VecAdd ?z ?t))"
-            //if is_vec("?x","?z","?t","?y")
-            ),
-            rewrite!("assoc-balan-add-4"; 
-            "(VecAdd (VecAdd ?x (VecAdd ?y ?z)) ?t)" => 
-            "(VecAdd (VecAdd ?x ?y) (VecAdd ?z ?t))"
-            //if is_vec("?x","?z","?t","?y")
-            )
-        ];
-
-        let assoc_balan_mul : Vec<Rewrite<VecLang, ConstantFold>> = vec![
-            rewrite!("assoc-balan-mul-1"; 
-            "(VecMul ?x (VecMul ?y (VecMul ?z ?t)))" => 
-            "(VecMul (VecMul ?x ?y) (VecMul ?z ?t))"
-            //if is_vec("?x","?y","?z","?t")
-            ),
-            rewrite!("assoc-balan-mul-2"; 
-            "(VecMul ?x (VecMul (VecMul ?z ?t) ?y))" => 
-            "(VecMul (VecMul ?x ?z) (VecMul ?t ?y))"
-            //if is_vec("?x","?z","?t","?y")
-            ),
-            rewrite!("assoc-balan-mul-3"; 
-            "(VecMul (VecMul (VecMul ?x ?y) ?z) ?t)" => 
-            "(VecMul (VecMul ?x ?y) (VecMul ?z ?t))"
-            //if is_vec("?x","?z","?t","?y")
-            ),
-            rewrite!("assoc-balan-mul-4"; 
-            "(VecMul (VecMul ?x (VecMul ?y ?z)) ?t)" => 
-            "(VecMul (VecMul ?x ?y) (VecMul ?z ?t))"
-            //if is_vec("?x","?z","?t","?y")
-            ),
-            rewrite!("assoc-balan-mul-5"; 
-            "(VecMul ?x (VecMul (VecMul ?y ?z) ?t))" => 
-            "(VecMul (VecMul ?x ?y) (VecMul ?z ?t))"
-            //if is_vec("?x","?z","?t","?y")
-            ),
-            rewrite!("assoc-balan-mul-6"; 
-            "(VecMul ?x (VecMul (VecMul ?y ?z) ?t))" => 
-            "(VecMul (VecMul ?x ?y) (VecMul ?z ?t))"
-            //if is_vec("?x","?z","?t","?y")
-            )
-        ];
-
-        let assoc_balan_min: Vec<Rewrite<VecLang, ConstantFold>> = vec![
-            rewrite!("assoc-balan-min-1"; 
-            "(VecMinus ?x (VecMinus ?y (VecMinus ?z ?t)))" => 
-            "(VecMinus (VecMinus ?x ?y) (VecMinus ?z ?t))"
-            //if is_vec("?x","?y","?z","?t")
-            ),
-            rewrite!("assoc-balan-min-2"; 
-            "(VecMinus ?x (VecMinus (VecMinus ?z ?t) ?y))" => 
-            "(VecMinus (VecMinus ?x ?z) (VecMinus ?t ?y))"
-            //if is_vec("?x","?z","?t","?y")
-            ),
-            rewrite!("assoc-balan-min-3"; 
-            "(VecMinus (VecMinus (VecMinus ?x ?y) ?z) ?t)" => 
-            "(VecMinus (VecMinus ?x ?y) (VecMinus ?z ?t))"
-            //if is_vec("?x","?z","?t","?y")
-            ),
-            rewrite!("assoc-balan-min-4"; 
-            "(VecMinus (VecMinus ?x (VecMinus ?y ?z)) ?t)" => 
-            "(VecMinus (VecMinus ?x ?y) (VecMinus ?z ?t))"
-            //if is_vec("?x","?z","?t","?y")
-            )
-        ];
-
-    let assoc_balan_add_mul :  Vec<Rewrite<VecLang, ConstantFold>> = vec![
-        rewrite!("assoc-balan-add-mul-1"; 
-        "(VecAdd (VecAdd (VecAdd (VecMul ?c1 ?c2) (VecMul ?d1 ?d2)) (VecMul ?b1 ?b2)) (VecMul ?a1 ?a2))" => 
-        "(VecAdd (VecAdd (VecMul ?a1 ?a2) (VecMul ?b1 ?b2)) (VecAdd (VecMul ?c1 ?c2) (VecMul ?d1 ?d2)))"
-        ////if is_vec_mul("?a1","?a2","?b1","?b2","?c1","?c2","?d1","?d2")
-        ),
-        rewrite!("assoc-balan-add-mul-2"; 
-        "(VecAdd (VecMul ?a1 ?a2) (VecAdd (VecMul ?b1 ?b2) (VecAdd (VecMul ?c1 ?c2) (VecMul ?d1 ?d2))))" => 
-        "(VecAdd (VecAdd (VecMul ?a1 ?a2) (VecMul ?b1 ?b2)) (VecAdd (VecMul ?c1 ?c2) (VecMul ?d1 ?d2)))"
-        //////if is_vec_mul("?a1","?a2","?b1","?b2","?c1","?c2","?d1","?d2")
-        ),
-        rewrite!("assoc-balan-add-mul-3"; 
-        "(VecAdd (VecAdd (VecMul ?a1 ?a2) (VecAdd (VecMul ?b1 ?b2) (VecMul ?c1 ?c2))) (VecMul ?d1 ?d2))" => 
-        "(VecAdd (VecAdd (VecMul ?a1 ?a2) (VecMul ?b1 ?b2)) (VecAdd (VecMul ?c1 ?c2) (VecMul ?d1 ?d2)))"
-        //////if is_vec_mul("?a1","?a2","?b1","?b2","?c1","?c2","?d1","?d2")
-        ),
-        rewrite!("distribute-mul-over-add"; 
-        "(VecMul ?a (VecAdd ?b ?c))" => "(VecAdd (VecMul ?a ?b) (VecMul ?a ?c))"
-        //if is_vec("?a","?b","?c","?c")
-        ),
-        rewrite!("factor-out-mul"; 
-            "(VecAdd (VecMul ?a ?b) (VecMul ?a ?c))" => "(VecMul ?a (VecAdd ?b ?c))"
-            //if is_vec("?a","?b","?c","?c")
-        ),
-    ];
-
-    let assoc_balan_add_min :  Vec<Rewrite<VecLang, ConstantFold>> = vec![
-        rewrite!("assoc-balan-add-min-1"; 
-        "(VecAdd (VecAdd (VecAdd (VecMinus ?c1 ?c2) (VecMinus ?d1 ?d2)) (VecMinus ?b1 ?b2)) (VecMinus ?a1 ?a2))" => 
-        "(VecAdd (VecAdd (VecMinus ?a1 ?a2) (VecMinus ?b1 ?b2)) (VecAdd (VecMinus ?c1 ?c2) (VecMinus ?d1 ?d2)))"
-        //if is_vec_mul("?a1","?a2","?b1","?b2","?c1","?c2","?d1","?d2")
-        ),
-        rewrite!("assoc-balan-add-min-2"; 
-        "(VecAdd (VecMinus ?a1 ?a2) (VecAdd (VecMinus ?b1 ?b2) (VecAdd (VecMinus ?c1 ?c2) (VecMinus ?d1 ?d2))))" => 
-        "(VecAdd (VecAdd (VecMinus ?a1 ?a2) (VecMinus ?b1 ?b2)) (VecAdd (VecMinus ?c1 ?c2) (VecMinus ?d1 ?d2)))"
-        //if is_vec_mul("?a1","?a2","?b1","?b2","?c1","?c2","?d1","?d2")
-        ),
-        rewrite!("assoc-balan-add-min-3"; 
-        "(VecAdd (VecAdd (VecMinus ?a1 ?a2) (VecAdd (VecMinus ?b1 ?b2) (VecMinus ?c1 ?c2))) (VecMinus ?d1 ?d2))" => 
-        "(VecAdd (VecAdd (VecMinus ?a1 ?a2) (VecMinus ?b1 ?b2)) (VecAdd (VecMinus ?c1 ?c2) (VecMinus ?d1 ?d2)))"
-        //if is_vec_mul("?a1","?a2","?b1","?b2","?c1","?c2","?d1","?d2")
-        ),
-    ];
-
-    let assoc_balan_min_mul : Vec<Rewrite<VecLang, ConstantFold>> = vec![
-        rewrite!("assoc-balan-min-mul-1"; 
-        "(VecMinus (VecMinus (VecMinus (VecMul ?c1 ?c2) (VecMul ?d1 ?d2)) (VecMul ?b1 ?b2)) (VecMul ?a1 ?a2))" => 
-        "(VecMinus (VecMinus (VecMul ?a1 ?a2) (VecMul ?b1 ?b2)) (VecAdd (VecMul ?c1 ?c2) (VecMul ?d1 ?d2)))"
-        //if is_vec_mul("?a1","?a2","?b1","?b2","?c1","?c2","?d1","?d2")
-        ),
-        rewrite!("assoc-balan-min-mul-2"; 
-        "(VecMinus (VecMul ?a1 ?a2) (VecMinus (VecMul ?b1 ?b2) (VecMinus (VecMul ?c1 ?c2) (VecMul ?d1 ?d2))))" => 
-        "(VecMinus (VecMinus (VecMul ?a1 ?a2) (VecMul ?b1 ?b2)) (VecMinus (VecMul ?c1 ?c2) (VecMul ?d1 ?d2)))"
-        //if is_vec_mul("?a1","?a2","?b1","?b2","?c1","?c2","?d1","?d2")
-        ),
-        rewrite!("assoc-balan-min-mul-3"; 
-        "(VecMinus (VecMinus (VecMul ?a1 ?a2) (VecMinus (VecMul ?b1 ?b2) (VecMul ?c1 ?c2))) (VecMul ?d1 ?d2))" => 
-        "(VecMinus (VecMinus (VecMul ?a1 ?a2) (VecMul ?b1 ?b2)) (VecMinus (VecMul ?c1 ?c2) (VecMul ?d1 ?d2)))"
-        //if is_vec_mul("?a1","?a2","?b1","?b2","?c1","?c2","?d1","?d2")
-        ),
-        rewrite!("distribute-mul-over-min"; 
-        "(VecMul ?a (VecMinus ?b ?c))" => "(VecMinus (VecMul ?a ?b) (VecMul ?a ?c))"
-        if is_vec("?a","?b","?c","?c")
-        ),
-        rewrite!("factor-out-mul_min";
-            "(VecMinus (VecMul ?a ?b) (VecMul ?a ?c))" => "(VecMul ?a (VecMinus ?b ?c))"
-            //if is_vec("?a","?b","?c","?c")
-        ),
-    ];
-
-    if optimized_rw {
-
-        if initial_operations.contains(&"Add".to_string()) {
-            eprintln!("Adding add op");
-            for rule in &assoc_balan_add {
-                initial_rules.push(rule.clone());
-                rules.push(rule.clone());
-            }
-            initial_rules.push(rewrite!("add-0"; "(+ 0 ?a)" => "?a"));
-            initial_rules.push(rewrite!("add-0-2"; "(+ ?a 0)" => "?a"));
-            rules.push(rewrite!("add-0"; "(+ 0 ?a)" => "?a"));
-            rules.push(rewrite!("add-0-2"; "(+ ?a 0)" => "?a"));            
-        }
-        
-        if initial_operations.contains(&"Min".to_string()) {
-            eprintln!("Adding min op");
-            for rule in &assoc_balan_min {
-                initial_rules.push(rule.clone());
-                rules_info.insert(rule.name.to_string(), vec!["Min".to_string(), "Min".to_string()]);
-                rules.push(rule.clone());
-            }
-            initial_rules.push(rewrite!("sub-0"; "(- 0 ?a)" => "?a"));
-            initial_rules.push(rewrite!("sub-0-2"; "(- ?a 0)" => "?a"));
-            rules.push(rewrite!("sub-0"; "(- 0 ?a)" => "?a"));
-            rules.push(rewrite!("sub-0-2"; "(- ?a 0)" => "?a"));
-        }
-    
-        if initial_operations.contains(&"Mul".to_string()) {
-            eprintln!("Adding mul op");
-            for rule in &assoc_balan_mul {
-                initial_rules.push(rule.clone());
-                rules_info.insert(rule.name.to_string(), vec!["Mul".to_string(), "Mul".to_string()]);
-                rules.push(rule.clone());
-            }
-            initial_rules.push(rewrite!("mul-0"; "(* 0 ?a)" => "0"));
-            initial_rules.push(rewrite!("mul-0-2"; "(* ?a 0)" => "0"));
-            initial_rules.push(rewrite!("mul-1"; "(* 1 ?a)" => "?a"));
-            initial_rules.push(rewrite!("mul-1-2"; "(* ?a 1)" => "?a"));
-            rules.push(rewrite!("mul-0"; "(* 0 ?a)" => "0"));
-            rules.push(rewrite!("mul-0-2"; "(* ?a 0)" => "0"));
-            rules.push(rewrite!("mul-1"; "(* 1 ?a)" => "?a"));
-            rules.push(rewrite!("mul-1-2"; "(* ?a 1)" => "?a"));
-        }
-
-        if initial_operations.contains(&"Add".to_string()) && initial_operations.contains(&"Mul".to_string()) {
-            for rule in &assoc_balan_add_mul {
-                initial_rules.push(rule.clone());
-                rules_info.insert(rule.name.to_string(), vec!["AddMul".to_string(), "AddMul".to_string()]);
-                rules.push(rule.clone());
-            }
-        }
-
-        if initial_operations.contains(&"Add".to_string()) && initial_operations.contains(&"Min".to_string()) {
-            for rule in &assoc_balan_add_min {
-                initial_rules.push(rule.clone());
-                rules_info.insert(rule.name.to_string(), vec!["AddMin".to_string(), "AddMin".to_string()]);
-                rules.push(rule.clone());
-            }
-        }
-
-        if initial_operations.contains(&"Min".to_string()) && initial_operations.contains(&"Mul".to_string()) {
-            for rule in &assoc_balan_min_mul {
-                initial_rules.push(rule.clone());
-                rules_info.insert(rule.name.to_string(), vec!["MinMul".to_string(), "MinMul".to_string()]);
-                rules.push(rule.clone());
-            }
-        }
-
-    }
-
-    else {
-        initial_rules.extend(assoc_balan_add.clone());
-        initial_rules.extend(assoc_balan_min.clone());
-        initial_rules.extend(assoc_balan_mul.clone());
-        initial_rules.extend(assoc_balan_add_min.clone());
-        initial_rules.extend(assoc_balan_add_mul.clone());
-        initial_rules.extend(assoc_balan_min_mul.clone());
-        initial_rules.push(rewrite!("add-0"; "(+ 0 ?a)" => "?a"));
-        initial_rules.push(rewrite!("add-0-2"; "(+ ?a 0)" => "?a"));
-        initial_rules.push(rewrite!("mul-0"; "(* 0 ?a)" => "0"));
-        initial_rules.push(rewrite!("mul-0-2"; "(* ?a 0)" => "0"));
-        initial_rules.push(rewrite!("mul-1"; "(* 1 ?a)" => "?a"));
-        initial_rules.push(rewrite!("mul-1-2"; "(* ?a 1)" => "?a"));
-        initial_rules.push(rewrite!("sub-0"; "(- 0 ?a)" => "?a"));
-        initial_rules.push(rewrite!("sub-0-2"; "(- ?a 0)" => "?a"));
-        rules.extend(assoc_balan_add.clone());
-        rules.extend(assoc_balan_min.clone());
-        rules.extend(assoc_balan_mul.clone());
-        rules.extend(assoc_balan_add_min.clone());
-        rules.extend(assoc_balan_add_mul.clone());
-        rules.extend(assoc_balan_min_mul.clone());
-    }
-
-    // rules_info
-
-    for rule in &assoc_balan_add {
-        rules_info.insert(rule.name.to_string(), vec!["Add".to_string(), "Add".to_string()]);
-    }
-
-    for rule in &assoc_balan_min {
-        initial_rules.push(rule.clone());
-        rules_info.insert(rule.name.to_string(), vec!["Min".to_string(), "Min".to_string()]);
-    }
-    
-    for rule in &assoc_balan_mul {
-        rules_info.insert(rule.name.to_string(), vec!["Mul".to_string(), "Mul".to_string()]);
-    }
-    
-    for rule in &assoc_balan_add_mul {
-        rules_info.insert(rule.name.to_string(), vec!["AddMul".to_string(), "AddMul".to_string()]);
-    }
-
-    for rule in &assoc_balan_add_min {
-        rules_info.insert(rule.name.to_string(), vec!["AddMin".to_string(), "AddMin".to_string()]);
-    }
-
-    for rule in &assoc_balan_min_mul {
-        rules_info.insert(rule.name.to_string(), vec!["MinMul".to_string(), "MinMul".to_string()]);
-    }
-
-    // rules.push(rewrite!("add-0"; "(+ 0 ?a)" => "?a"));
-    // rules.push(rewrite!("add-0-2"; "(+ ?a 0)" => "?a"));
-    // rules.push(rewrite!("mul-0"; "(* 0 ?a)" => "0"));
-    // rules.push(rewrite!("mul-0-2"; "(* ?a 0)" => "0"));
-    // rules.push(rewrite!("mul-1"; "(* 1 ?a)" => "?a"));
-    // rules.push(rewrite!("mul-1-2"; "(* ?a 1)" => "?a"));
-    // rules.push(rewrite!("min-0"; "(- 0 ?a)" => "?a"));
-    // rules.push(rewrite!("min-0-2"; "(- ?a 0)" => "?a"));
-    
-    // Add rules_info for all rules at the end
-    // rules_info.insert("add-0".to_string(), vec!["Add".to_string(), "Add".to_string()]);
-    // rules_info.insert("add-0-2".to_string(), vec!["Add".to_string(), "Add".to_string()]);
-    // rules_info.insert("mul-0".to_string(), vec!["Mul".to_string(), "Mul".to_string()]);
-    // rules_info.insert("mul-0-2".to_string(), vec!["Mul".to_string(), "Mul".to_string()]);
-    // rules_info.insert("mul-1".to_string(), vec!["Mul".to_string(), "Mul".to_string()]);
-    // rules_info.insert("mul-1-2".to_string(), vec!["Mul".to_string(), "Mul".to_string()]);
-    // rules_info.insert("min-0".to_string(), vec!["Min".to_string(), "Min".to_string()]);
-    // rules_info.insert("min-0-2".to_string(), vec!["Min".to_string(), "Min".to_string()]);
-    
-
-   
-    }
 
     pub fn generate_rules(
         vector_width: usize,
@@ -1062,22 +764,22 @@ pub fn print_egraph(
         let mut initial_rules_med : Vec<Rewrite<VecLang, ConstantFold>> = Vec::new();
 
         /************************************* rule generation **********************************/
-        // operations_rules(
-        //     vector_width,
-        //     optimized_rw,
-        //     initial_operations.clone(),
-        //     &mut rules_info_med,
-        //     &mut initial_rules_med,
-        //     &mut rules_med
-        // );
+        operations_rules(
+            vector_width,
+            optimized_rw,
+            initial_operations.clone(),
+            &mut rules_info_med,
+            &mut initial_rules_med,
+            &mut rules_med
+        );
 
-        // rules_info.extend(rules_info_med.clone());
-        // initial_rules.extend(initial_rules_med.clone());
-        // rules.extend(rules_med.clone());
+        rules_info.extend(rules_info_med.clone());
+        initial_rules.extend(initial_rules_med.clone());
+        rules.extend(rules_med.clone());
 
-        // rules_info_med.clear();
-        // rules_med.clear();
-        // initial_rules_med.clear();
+        rules_info_med.clear();
+        rules_med.clear();
+        initial_rules_med.clear();
 
         vectorization_rules(
             vector_width,
@@ -1098,20 +800,6 @@ pub fn print_egraph(
         rules_med.clear();
         initial_rules_med.clear();
 
-        balancing_rules(
-            optimized_rw,
-            initial_operations.clone(),
-            &mut rules_info_med,
-            &mut initial_rules_med,
-            &mut rules_med
-        );
-
-
-        debug!("balancing rules selected : {:?}", initial_rules_med);
-        rules_info.extend(rules_info_med);
-        initial_rules.extend(initial_rules_med);
-        rules.extend(rules_med);
-        eprintln!("===============================================================");
 
         for rw in initial_rules {
             debug!("initial rules : {:?}", rw);
