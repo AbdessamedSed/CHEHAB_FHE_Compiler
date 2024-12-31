@@ -8,9 +8,12 @@
 #include <stdexcept>
 #include <string>
 #include <vector>
+#include <sstream>
 #include <random>
 using namespace std;
 using namespace fheco;
+
+std::ofstream outFile("fhe_io_example.txt", std::ios::trunc);
 
 /*************************************************************** */
 // Function for generating random numbers
@@ -20,12 +23,15 @@ int getRandomNumber(int range) {
     std::uniform_int_distribution<int> dist(0, range);
     return dist(rng);
 }
+
 int64_t getRandomInt64(int64_t range) {
     static std::random_device rd;         // Seed generator
     static std::mt19937_64 rng(rd());     // 64-bit Mersenne Twister generator
     std::uniform_int_distribution<int64_t> dist(0, range - 1);  // Exclusive upper bound
     return dist(rng);
 }
+
+
 /**************************************************************** */
 // C++ equivalent of the treeGenerator function
 Ciphertext treeGenerator(int originalDepth, int maxDepth, int& seed, const std::string& regime) {
@@ -51,7 +57,10 @@ Ciphertext treeGenerator(int originalDepth, int maxDepth, int& seed, const std::
             localString = std::to_string(getRandomNumber(1024));
             seed += 1;
             std::cout << originalDepth + 1 - maxDepth << std::endl;
-            return Ciphertext("x");  // Return Ciphertext instance instead of Tree(Var)
+            int random = getRandomNumber(100);
+            string randomString = "c_" + std::to_string(std::rand() % 1000);
+            outFile << randomString << " 1 0 " << std::to_string(random) << std::endl; // in "1 0" : 1 for ciphertext not plaintext , and 0 for signed or not signed
+            return Ciphertext(randomString);
         } else {
             Ciphertext lhs = treeGenerator(originalDepth, maxDepth - 1, seed, regime);
             Ciphertext rhs = treeGenerator(originalDepth, maxDepth - 1, seed, regime);
@@ -65,19 +74,56 @@ Ciphertext treeGenerator(int originalDepth, int maxDepth, int& seed, const std::
     } else {
         //integer endNode = (1024);
         seed += 1;
-        return Ciphertext("x");  // Return Ciphertext instance instead of Tree(Var)
+        int random = getRandomNumber(100);
+        string randomString = "c_" + std::to_string(std::rand() % 1000);
+        outFile << randomString << " 1 0 " << std::to_string(random) << std::endl; // in "1 0" : 1 for ciphertext not plaintext , and 0 for signed or not signed
+        return Ciphertext(randomString);
     }
 }
 /*****************************************************/
-void fhe(int depth,int iteration, string regime) {
-    //vector<int> depths = {5, 10};
-    //vector<string> regimes = {"50-50", "100-50", "100-100"};
-    //int iteration = 1;
-    //int depth = depths[0];
-    int seed = 9100 + (iteration - 1) * 100 + (depth*100) + iteration;
+void fhe(int depth, int iteration, std::string regime) {
+    int seed = 9100 + (iteration - 1) * 100 + (depth * 100) + iteration;
     Ciphertext result = treeGenerator(depth, depth, seed, regime);
     result.set_output("result");
+
+    const std::string filePath = "fhe_io_example.txt";
+
+    // Open the input file for reading
+    std::ifstream inputFile(filePath);
+    if (!inputFile.is_open()) {
+        std::cerr << "Error: Unable to open file for reading.\n";
+        return;
+    }
+
+    int lineCount = 0;
+    std::string line;
+    std::stringstream fileContent;
+
+    while (std::getline(inputFile, line)) {
+        lineCount++;
+        fileContent << line << '\n';
+    }
+    inputFile.close();
+
+    // Convert file content to string and remove any leading newline
+    std::string fileData = fileContent.str();
+    if (!fileData.empty() && fileData[0] == '\n') {
+        fileData.erase(0, 1);
+    }
+
+    // Open the file for writing and overwrite its content
+    std::ofstream outputFile(filePath, std::ios::trunc);
+    if (!outputFile.is_open()) {
+        std::cerr << "Error: Unable to open file for writing.\n";
+        return;
+    }
+
+    outputFile << "1 " << std::to_string(lineCount) << " 1\n";
+    outputFile << fileData;
+
+    outputFile.close();
 }
+
 /***************************************************/
 void print_bool_arg(bool arg, const string &name, ostream &os)
 {
@@ -89,6 +135,7 @@ int main(int argc, char **argv) {
     auto window = 0;
     bool cse = true;
     bool const_folding = true;
+   
     /***************************/
     /**************************/
     bool call_quantifier = true;

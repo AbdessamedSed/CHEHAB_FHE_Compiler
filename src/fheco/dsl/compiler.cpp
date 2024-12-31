@@ -985,9 +985,11 @@ string generate_rotated_expression(string& expression_to_rotate, int number_of_r
   // expression_builder += "( ";
   expression_to_rotate.erase(0, 1);   // remove the first char bcz it s a space
   // std::cout << "number of rotations is : " << number_of_rotations << std::endl;
-  // std::cout << "operation 1 is : " << operation << std::endl;
-  string op = operation == "+" ? "+" : "-" ? "-" : "*" ? "*" : " ";
-  // std::cout << "op 1 is : " << op << std::endl;
+  std::cout << "operation 1 is : " << operation << std::endl;
+  string op = operation == "+" ? "+" : 
+            operation == "-" ? "-" : 
+            operation == "*" ? "*" : " ";
+  std::cout << "op 1 is : " << op << std::endl;
   if (number_of_rotations == 1) {
     expression_builder += " ( " + op + " " + expression_to_rotate + " ( << " + expression_to_rotate + " 1))";
   } else {
@@ -1194,6 +1196,7 @@ std::pair<std::string, int> process(
           std::string label = "c" + std::to_string(id_counter);
           // std::cout << "generated label is : "  << label << std::endl;
           labels_map[id_counter] = label;
+          inputs_entries[label] = label;
           id_counter++;
           index++;
           return {label, index};
@@ -1438,13 +1441,13 @@ string vector_constant_folding(queue<string> &tokens,unordered_map<string,string
 void update_io_file(const unordered_map<string,string>& input_entries,const vector<string> updated_outputs,int slot_count, int sub_vector_size){
    std::string inputs_file_name = "fhe_io_example.txt";
    std::ifstream input_file(inputs_file_name);
-   std::string line ;
-   std::vector<string> lines ;
+   std::string line;
+   std::vector<string> lines;
   //  std::cout<<" read fhe_io example file \n";
    if (input_file.is_open()) {
         // std::cout<<"read file content \n";
         while (std::getline(input_file, line)) {
-            // std::cout<<line<<" \n";
+            std::cout<<line<<" \n";
             lines.push_back(line);
         }
         input_file.close();
@@ -1459,31 +1462,31 @@ void update_io_file(const unordered_map<string,string>& input_entries,const vect
         throw invalid_argument("malformatted io_file header\n");
     }
     int old_slot_count = stoi(old_header[0]);
-    // std::cout << "old_slot_count : " << old_slot_count << std::endl;
+    std::cout << "old_slot_count : " << old_slot_count << std::endl;
     int old_nb_inputs = stoi(old_header[1]);
-    // std::cout << "old_nb_inputs : " << old_nb_inputs << std::endl;
+    std::cout << "old_nb_inputs : " << old_nb_inputs << std::endl;
     for(int i=1 ; i< old_nb_inputs+1 ; i++){
         vector<std::string> tokens = split_string(lines[i], ' ');
         if(tokens.size()<old_slot_count+3){
             throw invalid_argument("malformated input file");
         }
         string input_name = tokens[0];
-        // std::cout << "input name : " << input_name << std::endl;
+        std::cout << "input name : " << input_name << std::endl;
         int type = stoi(tokens[1]);
-        // std::cout << "type : " << type << std::endl;
+        std::cout << "type : " << type << std::endl;
         string value = "";
         for(int i=3 ; i<tokens.size() ; i++){
             value+=tokens[i]+" ";
         }
-        // std::cout << "value : " << value << std::endl;
+        std::cout << "value : " << value << std::endl;
         // input type is ciphertext
         if(type==1){
-            // std::cout << "ciphertexts[" << input_name << "] = " << value << std::endl;
+            std::cout << "ciphertexts[" << input_name << "] = " << value << std::endl;
             ciphertexts[input_name]=value ;
         }
         // input type is plaintext
         else{
-            // std::cout << "plaintexts[" << input_name << "] = " << value << std::endl;
+            std::cout << "plaintexts[" << input_name << "] = " << value << std::endl;
             plaintexts[input_name]=value ;
         }
     }
@@ -1492,14 +1495,14 @@ void update_io_file(const unordered_map<string,string>& input_entries,const vect
     std::ofstream updated_input_file(updated_inputs_file_name);
     /**********************************************************/
     string new_header = std::to_string(slot_count)+" "+std::to_string(input_entries.size())+" "+std::to_string(updated_outputs.size())+"\n";
-    // std::cout << "new header is : " << new_header << std::endl;
+    std::cout << "new header is : " << new_header << std::endl;
     updated_input_file << new_header;
-    string updated_input ="" ;
+    string updated_input = "" ;
     for(const auto&pair : input_entries){
         string vectorString = pair.second.substr(4);
-        // std::cout << "\nvectorString : " << vectorString << std::endl;
+        std::cout << "\nvectorString : " << vectorString << std::endl;
         string addionalInfo = pair.second.substr(0,4);
-        // std::cout << "\naddionalInfo : " << addionalInfo << std::endl; 
+        std::cout << "\naddionalInfo : " << addionalInfo << std::endl; 
         // updated_input=pair.first+" "+addionalInfo;
         vector<std::string> Valuestokens = split_string(vectorString, ' ');
         if(pair.first.substr(0,1)=="c"){
@@ -1633,7 +1636,7 @@ void Compiler::format_vectorized_code(const std::shared_ptr<ir::Func> &func)
     vector<string> labels = {};
     for (const auto& pair : inputs_entries) {
       // std::cout << "pair.first = " << pair.first << std::endl;
-      labels.push_back(pair.first);  // Access the key via pair.first
+      labels.push_back(pair.first);
     }
     unordered_map<string,int> inputs_occurences ={};
     for(auto label : labels){
@@ -1770,3 +1773,5 @@ void Compiler::format_vectorized_code(const std::shared_ptr<ir::Func> &func)
     }
 }
 } // namespace fheco
+
+

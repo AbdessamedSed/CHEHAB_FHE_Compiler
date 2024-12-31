@@ -133,7 +133,7 @@ void Quantifier::compute_depth_info()
     if (e.second.depth_ > depth_summary_.max_depth_)
       depth_summary_.max_depth_ = e.second.depth_;
     if (e.second.xdepth_ > depth_summary_.max_xdepth_)
-      depth_summary_.max_xdepth_ = e.second.xdepth_;
+      depth_summary_.max_xdepth_ = e.second.xdepth_ ;
   }
   depth_summary_.avg_depth_ /= ctxt_leaves_depth_info_.size();
   depth_summary_.avg_xdepth_ /= ctxt_leaves_depth_info_.size();

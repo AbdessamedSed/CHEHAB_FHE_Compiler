@@ -62,6 +62,30 @@ impl CostFunction<VecLang> for VecCostFn<'_> {
             VecLang::Num(..) | VecLang::Symbol(..) => 0.0,
             _ => 1.0,
         };
+
+        if matches!(
+            enode,
+            VecLang::VecAddRotF(..)
+                | VecLang::VecAddRotP(..)
+                | VecLang::VecMinusRotF(..)
+                | VecLang::VecMinusRotP(..)
+                | VecLang::VecMulRotF(..)
+                | VecLang::VecMulRotP(..)
+        ) {
+            if let Some(rotation_node) = enode.children().last() {
+                let eclass = &self.egraph[*rotation_node];
+                if let Some(node) = eclass.nodes.get(0) {
+                    if let VecLang::Num(value) = node {
+                        let num_rotations = *value as f64;
+                        debug!("Rotation value: {:?}", num_rotations);
+                                
+                        let rotation_cost = num_rotations * 2.0;
+                        let children_cost = enode.fold(0.0, |max: f64, id| max.max(costs(id)));
+                        return rotation_cost + children_cost;
+                    }
+                }
+            }
+        }
         
         op_cost + enode.fold(0.0, |max: f64, id| max.max(costs(id)))
     }
@@ -75,8 +99,26 @@ impl CostFunction<VecLang> for VecCostFn<'_> {
             _ => 0.0,
         };
         
-        op_cost + enode.fold(0.0, |max: f64, id| max.max(costs(id)))
-    }
+        if matches!(
+            enode,
+                VecLang::VecMulRotF(..) | VecLang::VecMulRotP(..)
+        ) {
+            if let Some(rotation_node) = enode.children().last() {
+                let eclass = &self.egraph[*rotation_node];
+                if let Some(node) = eclass.nodes.get(0) {
+                    if let VecLang::Num(value) = node {
+                        let num_rotations = *value as f64;
+                        debug!("Rotation value: {:?}", num_rotations);
+                                
+                        let rotation_cost = num_rotations * 2.0;
+                        let children_cost = enode.fold(0.0, |max: f64, id| max.max(costs(id)));
+                        return rotation_cost + children_cost;
+                    }
+                }
+            }
+        }
+        
+        op_cost + enode.fold(0.0, |max: f64, id| max.max(costs(id)))    }
 
     fn rotations<C>(&mut self, enode: &VecLang, mut costs: C) -> Self::Cost
     where
@@ -87,7 +129,7 @@ impl CostFunction<VecLang> for VecCostFn<'_> {
             VecLang::VecAddRotF(..) | VecLang::VecAddRotP(..) |
             VecLang::VecMinusRotF(..) | VecLang::VecMinusRotP(..) |
             VecLang::VecMulRotF(..) | VecLang::VecMulRotP(..) => 1.0,
-            _ => 0.0,
+            _ => 0.0,   //rotations cost 
         };
     
         if matches!(

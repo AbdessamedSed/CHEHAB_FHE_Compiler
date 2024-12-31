@@ -50,8 +50,8 @@ void fhe_vectorized(int slot_count){
 void fhe(int slot_count) {
   Ciphertext output;
   // output = (Ciphertext("v_46") + Ciphertext("v_234")) + (Ciphertext("v_1") + Ciphertext("v_93")) + ( Ciphertext("v_12") * Ciphertext("v_11") );
-  output = ( ( ( ( ( Ciphertext("v_739") * Ciphertext("v_26") ) + ( Ciphertext("v_405") + Ciphertext("v_446") ) ) * ( ( Ciphertext("v_991") * Ciphertext("v_341") ) * ( Ciphertext("v_125") * Ciphertext("v_50") ) ) ) * ( ( ( Ciphertext("v_294") + Ciphertext("v_673") ) * ( Ciphertext("v_474") * Ciphertext("v_210") ) ) * ( ( Ciphertext("v_33") * Ciphertext("v_787") ) * ( Ciphertext("v_309") + Ciphertext("v_511") ) ) ) ) + ( ( ( ( Ciphertext("v_3") * Ciphertext("v_276") ) + ( Ciphertext("v_404") * Ciphertext("v_152") ) ) * ( ( Ciphertext("v_16") + Ciphertext("v_848") ) + ( Ciphertext("v_115") + Ciphertext("v_620") ) ) ) + ( ( ( Ciphertext("v_623") + Ciphertext("v_234") ) * ( Ciphertext("v_42") * Ciphertext("v_595") ) ) + ( ( Ciphertext("v_421") + Ciphertext("v_484") ) + ( Ciphertext("v_305") + Ciphertext("v_718") ) ) ) ) );
-
+  // output = ( ( ( ( ( Ciphertext("v_739") * Ciphertext("v_26") ) + ( Ciphertext("v_405") + Ciphertext("v_446") ) ) * ( ( Ciphertext("v_991") * Ciphertext("v_341") ) * ( Ciphertext("v_125") * Ciphertext("v_50") ) ) ) * ( ( ( Ciphertext("v_294") + Ciphertext("v_673") ) * ( Ciphertext("v_474") * Ciphertext("v_210") ) ) * ( ( Ciphertext("v_33") * Ciphertext("v_787") ) * ( Ciphertext("v_309") + Ciphertext("v_511") ) ) ) ) + ( ( ( ( Ciphertext("v_3") * Ciphertext("v_276") ) + ( Ciphertext("v_404") * Ciphertext("v_152") ) ) * ( ( Ciphertext("v_16") + Ciphertext("v_848") ) + ( Ciphertext("v_115") + Ciphertext("v_620") ) ) ) + ( ( ( Ciphertext("v_623") + Ciphertext("v_234") ) * ( Ciphertext("v_42") * Ciphertext("v_595") ) ) + ( ( Ciphertext("v_421") + Ciphertext("v_484") ) + ( Ciphertext("v_305") + Ciphertext("v_718") ) ) ) ) );
+  output = ( Ciphertext("v_46") + ( Ciphertext("v_234") + ( Ciphertext("v_405") + ( Ciphertext("v_446") + ( Ciphertext("v_991") + Ciphertext("v_341") ) ) ) ) );
 
   output.set_output("output");
 }
