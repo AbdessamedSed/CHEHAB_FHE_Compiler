@@ -813,6 +813,8 @@ pub fn print_egraph(
             rules.extend(split_vectors);
         }
 
+            // you can call here split_vectors function and rotation_rules
+
     }
 
    
