@@ -56,7 +56,7 @@ public:
   static ir::OpCode operationFromString(string operation);
   
   static void gen_vectorized_code(const std::shared_ptr<ir::Func> &func);
-  static void format_vectorized_code(const std::shared_ptr<ir::Func> &func);
+  static void format_vectorized_code(const std::shared_ptr<ir::Func> &func, bool one_output);
 
   static void gen_vectorized_code(const std::shared_ptr<ir::Func> &func, int window);
   static void gen_he_code(
@@ -73,6 +73,9 @@ public:
   static void set_active_func(const std::string &name);
   static void call_vectorizer(int vector_width);
   static void call_script();
+
+  // static std::vector<std::string> tokenizeExpression(const std::string& expression);
+  // static void processExpression(const std::string& expression, std::vector<int>& vectorSizes, int& maxSize);
 
   static const std::shared_ptr<ir::Func> &get_func(const std::string &name);
 
@@ -130,3 +133,5 @@ private:
 
 std::ostream &operator<<(std::ostream &os, Compiler::Ruleset ruleset);
 } // namespace fheco
+
+/*******************/

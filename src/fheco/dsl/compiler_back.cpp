@@ -1,5 +1,4 @@
 
-
 #include "fheco/code_gen/gen_func.hpp"
 #include "fheco/dsl/compiler.hpp"
 #include "fheco/dsl/ciphertext.hpp"
@@ -353,7 +352,7 @@ string constant_folding(queue<string> &tokens)
 /**********************************************************************/
 void Compiler::gen_vectorized_code(const std::shared_ptr<ir::Func> &func)
 {
-  std::cout<<"welcome in vectorized code generator <ithout window \n";
+  // std::cout<<"welcome in vectorized code generator <ithout window \n";
   // Utility function to print expressions in prefix notation
   util::ExprPrinter expr_printer(func);
   expr_printer.make_terms_str_expr(util::ExprPrinter::Mode::prefix);
@@ -451,7 +450,7 @@ void Compiler::gen_vectorized_code(const std::shared_ptr<ir::Func> &func)
   // expression += ")";
 
   // Write the expression to the expression_file
-  std::cout << "The input expression is : " + expression << std::endl;
+  // std::cout << "The input expression is : " + expression << std::endl;
   expression_file << expression << std::endl;
 
   // Overwrite the vectorized_code_file
@@ -462,7 +461,7 @@ void Compiler::gen_vectorized_code(const std::shared_ptr<ir::Func> &func)
   vectorized_code_file.close();
   /*********************************************************/
   // Call the vectorizer function with the computed vector width
-  std::cout<<"Call the code vectorizer \n" << std::endl;
+  // std::cout<<"Call the code vectorizer \n" << std::endl;
   call_vectorizer(vector_width);
 
   /***********************************************************/
@@ -500,7 +499,7 @@ void Compiler::gen_vectorized_code(const std::shared_ptr<ir::Func> &func)
 void Compiler::gen_vectorized_code(const std::shared_ptr<ir::Func> &func, int window)
 {
 
-  std::cout << "called gen_vectorized_code with windows";
+  // std::cout << "called gen_vectorized_code with windows";
   if (window < 0)
   {
     std::cerr << "Window size must be greater than 0." << std::endl;
@@ -565,7 +564,7 @@ void Compiler::gen_vectorized_code(const std::shared_ptr<ir::Func> &func, int wi
     // Process output terms
     std::vector<const ir::Term *> output_terms = process_output_terms(func->data_flow().outputs_info(),func->data_flow().output_keys());
     if(vector_full_width<window){
-      std::cout<<"\nresult vector width smaller than window size ==> windows will be considered=0(deactivated)\n";
+      // std::cout<<"\nresult vector width smaller than window size ==> windows will be considered=0(deactivated)\n";
       gen_vectorized_code(func);
       return;
     }
@@ -617,7 +616,7 @@ void Compiler::gen_vectorized_code(const std::shared_ptr<ir::Func> &func, int wi
           return;
         }
 
-        std::cout << "The input expression before vectorization is : " + expression << std::endl;
+        // std::cout << "The input expression before vectorization is : " + expression << std::endl;
 
         expression_file << expression;
         expression_file.close();
@@ -678,7 +677,7 @@ ir::OpCode Compiler::operationFromString(string operation)
 /*************************************************************************/
 ir::Term *Compiler::build_expression(const std::shared_ptr<ir::Func> &func, map<string, ir::Term *> map, queue<string> &tokens)
 {
-  std::cout << "hello build expression" << std::endl;
+  // std::cout << "hello build expression" << std::endl;
   while (!tokens.empty())
   {
 
@@ -689,17 +688,17 @@ ir::Term *Compiler::build_expression(const std::shared_ptr<ir::Func> &func, map<
       tokens.pop();
       string operationString = tokens.front();
       ir::OpCode operation = ir::OpCode::nop;
-      std::cout << "operationstring is  : " << operationString << std::endl;
+      // std::cout << "operationstring is  : " << operationString << std::endl;
       if (operationString == "<<"){
-          std::cout << "operation is rotation" << std::endl;
+          // std::cout << "operation is rotation" << std::endl;
           op_is_rotation = true;
       }else if (operationString =="SumVec"){
-        std::cout << "operations is sumvec" << std::endl;
+        // std::cout << "operations is sumvec" << std::endl;
           op_is_SumVec = true ; 
       }else{
-          std::cout << "simple operation" << std::endl;
+          // std::cout << "simple operation" << std::endl;
           operation = operationFromString(operationString);
-          std::cout << "extracted operations is : " << operation << std::endl;
+          // std::cout << "extracted operations is : " << operation << std::endl;
       }
       tokens.pop();
 
@@ -708,19 +707,19 @@ ir::Term *Compiler::build_expression(const std::shared_ptr<ir::Func> &func, map<
       ir::Term *operand1, *operand2 = nullptr;
       if (tokens.front() == "(")
       {
-        std::cout << "<=> operand 1 is : " << tokens.front() << std::endl;
+        // std::cout << "<=> operand 1 is : " << tokens.front() << std::endl;
         operand1 = build_expression(func, map, tokens);
 
       }
       else
       {
         operand1 = map.at(tokens.front());
-        std::cout << "=> operand 1 is : " << tokens.front() << std::endl;
+        // std::cout << "=> operand 1 is : " << tokens.front() << std::endl;
         tokens.pop();
       }
       if (tokens.front() == "(")
       {
-        std::cout << "operand 2 : " << tokens.front() << std::endl;
+        // std::cout << "operand 2 : " << tokens.front() << std::endl;
         potential_step += " ";
         operand2 = build_expression(func, map, tokens);
       }
@@ -729,28 +728,28 @@ ir::Term *Compiler::build_expression(const std::shared_ptr<ir::Func> &func, map<
         if (!op_is_rotation && !op_is_SumVec)
         {
           operand2 = map.at(tokens.front());
-          std::cout << "=> operand 2 is : " << tokens.front() << std::endl;
+          // std::cout << "=> operand 2 is : " << tokens.front() << std::endl;
         }
         potential_step = tokens.front();
-        std::cout << "potetional step is : " << potential_step << std::endl;
+        // std::cout << "potetional step is : " << potential_step << std::endl;
         tokens.pop();
       }
 
       // Check for the closing parenthesis
       if (tokens.front() == ")")
       {
-        std::cout << "char ) poped " << std::endl;
+        // std::cout << "char ) poped " << std::endl;
         tokens.pop();
       }
 
-      std::cout << "potentianl step is : " << potential_step << std::endl;
+      // std::cout << "potentianl step is : " << potential_step << std::endl;
 
       if (potential_step.size() > 0)
       {
 
         if (op_is_rotation)
         {
-          std::cout << "op rotat process" << std::endl;
+          // std::cout << "op rotat process" << std::endl;
           operation = ir::OpCode::rotate(stoi(potential_step));
           vector<ir::Term *> operands = {operand1};
           return func->insert_op_term(move(operation), move(operands));
@@ -761,7 +760,7 @@ ir::Term *Compiler::build_expression(const std::shared_ptr<ir::Func> &func, map<
           vector<ir::Term *> operands = {operand1};
           return func->insert_op_term(move(operation), move(operands));
         }else{
-          std::cout << "simple op process" << std::endl;
+          // std::cout << "simple op process" << std::endl;
           vector<ir::Term *> operands = {operand1, operand2};
           // we need to add addditional treatments if they both plaintexts 
           // we need to evaluate they and insterm the new resulted term 
@@ -937,13 +936,14 @@ string process_composed_vectors(const vector<string>& vector_elements,
         if(is_literal_val){
           label = "p" + std::to_string(id_counter);
           new_element = "0 1 " + new_element;
+          //std::cout<<label<<" : "<<new_element<<" \n";
         }else{
           label = "c" + std::to_string(id_counter);
           new_element = "1 1 " + new_element;
+          //std::cout<<label<<" : "<<new_element<<" \n";
         }
         labels_map[id_counter] = label;
         inputs_entries[label]=new_element;
-        std::cout<<"new element added to inputs entries in process composed vector : " <<new_element<<" \n";
         id_counter++ ;
         dictionary[string_vector] = label;
         return label ;
@@ -971,7 +971,6 @@ string process_composed_vectors(const vector<string>& vector_elements,
       new_element = "1 1 " + new_element;
       labels_map[id_counter] = label;
       inputs_entries[label]=new_element;
-      std::cout<<"new element added to inputs entries in process composed vector : " << inputs_entries[label] <<" \n";
       id_counter++ ;
       dictionary[string_vector] = label;
       return label ;
@@ -984,11 +983,15 @@ string process_composed_vectors(const vector<string>& vector_elements,
 string generate_rotated_expression(string& expression_to_rotate, int number_of_rotations, string operation) {
 
   string expression_builder = "";
+  // expression_builder += "( ";
   expression_to_rotate.erase(0, 1);   // remove the first char bcz it s a space
-  std::cout << "number of rotations is : " << number_of_rotations << std::endl;
+  // std::cout << "number of rotations is : " << number_of_rotations << std::endl;
   std::cout << "operation 1 is : " << operation << std::endl;
-  string op = operation == "+" ? "+" : "-" ? "-" : "*" ? "*" : " ";
+  string op = operation == "+" ? "+" : 
+            operation == "-" ? "-" : 
+            operation == "*" ? "*" : " ";
   std::cout << "op 1 is : " << op << std::endl;
+  std::cout << "number of rotations is : " << number_of_rotations << std::endl;
   if (number_of_rotations == 1) {
     expression_builder += " ( " + op + " " + expression_to_rotate + " ( << " + expression_to_rotate + " 1))";
   } else {
@@ -1003,6 +1006,7 @@ string generate_rotated_expression(string& expression_to_rotate, int number_of_r
     }
   }
 
+  std::cout << "expression to rotate is : " << expression_builder << std::endl;
  return expression_builder;
 
 }
@@ -1025,7 +1029,7 @@ std::pair<std::string, int> process(
     while (index < tokens.size()) {
         if (tokens[index] == "(") {
             index++;
-            if (tokens[index] == "Vec") {
+            if (tokens[index] == "Vec"){
                 std::string vector_string = "Vec ";
                 int nested_level = 0;
                 index++;
@@ -1066,16 +1070,14 @@ std::pair<std::string, int> process(
                 }
                 string result_expr = process_composed_vectors(updated_vector_elements,dictionary,inputs_entries,inputs,inputs_types,slot_count,sub_vector_size);
                 
-                std::cout << "result_expr : " << result_expr << std::endl;
+                // std::cout << "result_expr : " << result_expr << std::endl;
                 if (!rotation_flag) new_expression+=" "+result_expr;
                 if (rotation_flag) expression_to_rotate += " " + result_expr;
-                std::cout << "expression to rotate after altering : " << expression_to_rotate << std::endl;
-                std::cout << "new expression is : " << new_expression <<std::endl;
+                // std::cout << "expression to rotate after altering : " << expression_to_rotate << std::endl;
+                // std::cout << "new expression is : " << new_expression <<std::endl;
                 if(result_expr.substr(0,1)=="("){
-                  std::cout << "1 ==>token is x" << std::endl;
                   std::string label = "c" + std::to_string(id_counter);
                   labels_map[id_counter] = label;
-                  std::cout << "generated label is : "  << label << std::endl;
                   id_counter++;
                   return {label, index};
                 } else{
@@ -1093,8 +1095,8 @@ std::pair<std::string, int> process(
               operation == "VecMinusRotF" | operation == "VecMinusRotP" ? "-" : 
               operation == "VecMulRotF" | operation == "VecMulRotP" ? "*" : "+";
               expression_to_rotate += " " + op;
-              std::cout << "expression to rotate is : #" << expression_to_rotate << "#" << std::endl;
-              std::cout << "new expression rot 3 is : " << new_expression << std::endl;
+              // std::cout << "expression to rotate is : #" << expression_to_rotate << "#" << std::endl;
+              // std::cout << "new expression rot 3 is : " << new_expression << std::endl;
               
               index++;
               auto [operand_1, new_index] = process(tokens, index, dictionary, inputs_entries,inputs,inputs_types, slot_count, sub_vector_size,new_expression, rotation_flag, expression_to_rotate);
@@ -1108,20 +1110,20 @@ std::pair<std::string, int> process(
                     operand_2 = tokens[index];
                     new_expression += " " + operand_2;
                     expression_to_rotate += " " + operand_2;
-                    std::cout << "expression to rotate is : #" << expression_to_rotate << "#" << std::endl;
-                    std::cout << "new expression rot 4 is : " << new_expression <<std::endl;
+                    // std::cout << "expression to rotate is : #" << expression_to_rotate << "#" << std::endl;
+                    // std::cout << "new expression rot 4 is : " << new_expression <<std::endl;
 
                     index++;
                 }
                 expression_to_rotate += " )";
-                std::cout << "expression to rotate is : #" << expression_to_rotate << "#" << std::endl;
-                std::cout << "new expression rot 5 is : " << new_expression <<std::endl;
-                std::cout << "number of rotations 1 is : " << tokens[index] << std::endl;
+                // std::cout << "expression to rotate is : #" << expression_to_rotate << "#" << std::endl;
+                // std::cout << "new expression rot 5 is : " << new_expression <<std::endl;
+                // std::cout << "number of rotations 1 is : " << tokens[index] << std::endl;
                 string ret = generate_rotated_expression(expression_to_rotate, /*number of rotations*/ std::stoi(tokens[index]), /*the current operatoin*/ std::string(1, expression_to_rotate[3]));
                 std::cout << "new expression after rotations : " << ret<< std::endl;
                 new_expression += ret;
                 
-                // std::string op = (operation == "VecAdd") ? "+" : (operation == "VecMinus") ? "-" : (operation == "VecMul") ? "*" : "<<";
+                std::string op = (operation == "VecAdd") ? "+" : (operation == "VecMinus") ? "-" : (operation == "VecMul") ? "*" : "<<";
                 std::string label = "c" + std::to_string(id_counter);
                 labels_map[id_counter] = label;
                 std::cout << "label is : " << label << std::endl;
@@ -1134,8 +1136,6 @@ std::pair<std::string, int> process(
             } else {
               /******/new_expression+=" )";
                 index++;
-                std::cout << "2==> token is x" << std::endl;
-
                 std::string label = "c" + std::to_string(id_counter);
                 std::cout << "label is : " << label << std::endl;
                 labels_map[id_counter] = label;
@@ -1146,7 +1146,7 @@ std::pair<std::string, int> process(
 
             }
             /******/new_expression+=" (";
-            std::cout << "new expressio 2n is : " << new_expression <<std::endl;
+            // std::cout << "new expressio 2n is : " << new_expression <<std::endl;
             std::string operation = tokens[index];
             std::string op = 
               operation == "VecAdd" | operation == "+" ? "+" :
@@ -1154,7 +1154,7 @@ std::pair<std::string, int> process(
               operation == "VecMul"  | operation == "*" ? "*" 
               : "<<";
             /*****/new_expression+=" "+op ;
-            std::cout << "new expression 3 is : " << new_expression <<std::endl;
+            // std::cout << "new expression 3 is : " << new_expression <<std::endl;
 
             index++;
             auto [operand_1, new_index] = process(tokens, index, dictionary, inputs_entries,inputs,inputs_types, slot_count, sub_vector_size,new_expression, rotation_flag, expression_to_rotate);
@@ -1165,51 +1165,46 @@ std::pair<std::string, int> process(
             
                     std::tie(operand_2, index) = process(tokens, index, dictionary, inputs_entries,inputs,inputs_types, slot_count, sub_vector_size,new_expression, rotation_flag, expression_to_rotate);
                 } else {
-                    std::cout << "3 ==> token is x" << std::endl;
                     std::string label = "c" + std::to_string(id_counter);
-                    std::cout << "generated label is : "  << label << std::endl;
+                    // std::cout << "generated label is : "  << label << std::endl;
                     labels_map[id_counter] = label;
                     id_counter++;
                     // operand_2 = tokens[index];
                     operand_2 = label;
                     new_expression+=" "+operand_2;
-                    std::cout << "new expression 4 is : " << new_expression <<std::endl;
+                    // std::cout << "new expression 4 is : " << new_expression <<std::endl;
                     index++;
                 }
                 /******/new_expression+=" )";
-                std::cout << "new expression 5 is : " << new_expression <<std::endl;
+                // std::cout << "new expression 5 is : " << new_expression <<std::endl;
 
                 std::string op = (operation == "VecAdd") ? "+" : (operation == "VecMinus") ? "-" : (operation == "VecMul") ? "*" : "<<";
-                std::cout << "4 ==> token is x" << std::endl;
                 std::string label = "c" + std::to_string(id_counter);
                 labels_map[id_counter] = label;
-                std::cout << "label is : " << label << std::endl;
+                // std::cout << "label is : " << label << std::endl;
                 id_counter++;
                 index++;
                 return {label, index};
             }else{
                 /******/new_expression+=" )";
                 index++;
-                std::cout << "5 ==> token is x" << std::endl;
                 std::string label = "c" + std::to_string(id_counter);
-                std::cout << "label is : " << label << std::endl;
+                // std::cout << "label is : " << label << std::endl;
                 labels_map[id_counter] = label;
                 id_counter++;
                 return {label, index};
             }
-        } 
-        // else if (tokens[index] == "x") {
-        //   std::cout << "token is x" << std::endl;
-        //   std::string label = "c" + std::to_string(id_counter);
-        //   std::cout << "generated label is : "  << label << std::endl;
-        //   labels_map[id_counter] = label;
-        //   inputs_entries[label] = " 1 1 x";
-        //   std::cout<<"new element added to inputs entries in process composed vector : " << inputs_entries[label] <<" \n";
-        //   id_counter++;
-        //   index++;
-        //   return {label, index};
+        } else if (tokens[index] == "x") {
+          // std::cout << "token is x" << std::endl;
+          std::string label = "c" + std::to_string(id_counter);
+          // std::cout << "generated label is : "  << label << std::endl;
+          labels_map[id_counter] = label;
+          inputs_entries[label] = label;
+          id_counter++;
+          index++;
+          return {label, index};
 
-        // }
+        }
     }
     return {"", index};
 }
@@ -1449,13 +1444,13 @@ string vector_constant_folding(queue<string> &tokens,unordered_map<string,string
 void update_io_file(const unordered_map<string,string>& input_entries,const vector<string> updated_outputs,int slot_count, int sub_vector_size){
    std::string inputs_file_name = "fhe_io_example.txt";
    std::ifstream input_file(inputs_file_name);
-   std::string line ;
-   std::vector<string> lines ;
+   std::string line;
+   std::vector<string> lines;
   //  std::cout<<" read fhe_io example file \n";
    if (input_file.is_open()) {
         // std::cout<<"read file content \n";
         while (std::getline(input_file, line)) {
-            // std::cout<<line<<" \n";
+            std::cout<<line<<" \n";
             lines.push_back(line);
         }
         input_file.close();
@@ -1470,9 +1465,9 @@ void update_io_file(const unordered_map<string,string>& input_entries,const vect
         throw invalid_argument("malformatted io_file header\n");
     }
     int old_slot_count = stoi(old_header[0]);
-    // std::cout << "old_slot_count : " << old_slot_count << std::endl;
+    std::cout << "old_slot_count : " << old_slot_count << std::endl;
     int old_nb_inputs = stoi(old_header[1]);
-    // std::cout << "old_nb_inputs : " << old_nb_inputs << std::endl;
+    std::cout << "old_nb_inputs : " << old_nb_inputs << std::endl;
     for(int i=1 ; i< old_nb_inputs+1 ; i++){
         vector<std::string> tokens = split_string(lines[i], ' ');
         if(tokens.size()<old_slot_count+3){
@@ -1505,13 +1500,13 @@ void update_io_file(const unordered_map<string,string>& input_entries,const vect
     string new_header = std::to_string(slot_count)+" "+std::to_string(input_entries.size())+" "+std::to_string(updated_outputs.size())+"\n";
     std::cout << "new header is : " << new_header << std::endl;
     updated_input_file << new_header;
-    string updated_input ="" ;
+    string updated_input = "" ;
     for(const auto&pair : input_entries){
         string vectorString = pair.second.substr(4);
-        std::cout << "\nvectorString : " << vectorString << std::endl;
+        std::cout << "\nvectorString : #" << vectorString << "#" << std::endl;
         string addionalInfo = pair.second.substr(0,4);
         std::cout << "\naddionalInfo : " << addionalInfo << std::endl; 
-        updated_input=pair.first+" "+addionalInfo;
+        // updated_input=pair.first+" "+addionalInfo;
         vector<std::string> Valuestokens = split_string(vectorString, ' ');
         if(pair.first.substr(0,1)=="c"){
           for(int i =0; i<Valuestokens.size() ; i++){
@@ -1625,6 +1620,12 @@ void Compiler::format_vectorized_code(const std::shared_ptr<ir::Func> &func)
         outputs.push_back(labels_map[id_counter - 1]);
         std::cout<<"********************************************************\n" << std::endl;
     }
+
+    std::cout << "Contents of the unordered_map:" << std::endl;
+    for (const auto& pair : inputs_entries) {
+        std::cout << pair.first << ": " << pair.second << std::endl;
+    }
+
     //string info_tmp ="( + ( * ( + ( * ( * ( + ( * c0 c1 ) ( + ( * c0 c2 ) ( + ( * c0 c3 ) ( + ( * c0 c4 ) ( + ( * c0 c5 ) ( + ( * c0 c6 ) ( * c0 c7 ) ) ) ) ) ) ) c9 ) c11 ) ( + ( * ( + ( * c13 c14 ) ( + ( * c15 c16 ) ( + ( * c17 c18 ) ( + ( * c19 c20 ) ( + ( * c21 c22 ) ( + ( * c23 c24 ) ( + ( * c25 c26 ) ( + ( * c27 c28 ) ( + ( * c29 c30 ) ( + ( * c31 c32 ) ( + ( * c33 c34 ) c35 ) ) ) ) ) ) ) ) ) ) ) p36 ) ( + ( + ( * c38 c39 ) ( + ( * c0 c40 ) ( + ( * c0 c41 ) ( + ( * c0 c42 ) ( + ( * c0 c43 ) ( + ( * c0 c44 ) ( + ( * c0 c45 ) ( + ( * c0 c46 ) ( + ( * c0 c47 ) ( + ( * c0 c48 ) ( + ( * c0 c49 ) ( * c0 c50 ) ) ) ) ) ) ) ) ) ) ) ) ( + ( * c0 c52 ) ( + ( * c53 c54 ) ( + ( * c55 c56 ) ( + ( * c0 c57 ) ( + ( * c58 c59 ) ( + ( * c60 c61 ) ( + ( * c62 c63 ) ( + ( * c0 c64 ) ( + ( * c65 c66 ) ( + ( * c67 c68 ) ( + ( * c69 c70 ) ( + ( * c0 c71 ) ( + ( * c72 c73 ) ( + ( * c74 c75 ) ( + ( * c76 c77 ) ( * c0 c78 ) ) ) ) ) ) ) ) ) ) ) ) ) ) ) ) ) ) ) ( * c35 p36 ) ) ( * ( + ( * ( * ( + ( * c1 c14 ) ( + ( * c2 c16 ) ( + ( * c4 c22 ) ( + ( * c5 c24 ) ( + ( * c6 c28 ) ( + ( * c90 c30 ) ( + ( * c7 c32 ) c91 ) ) ) ) ) ) ) p92 ) p36 ) ( + ( * ( + ( * c0 c13 ) ( + ( * c0 c15 ) ( + ( * c0 c17 ) ( + ( * c0 c19 ) ( + ( * c0 c21 ) ( + ( * c0 c23 ) ( + ( * c0 c25 ) ( + ( * c0 c27 ) ( + ( * c0 c29 ) ( + ( * c0 c31 ) ( * c0 c33 ) ) ) ) ) ) ) ) ) ) ) c96 ) ( + ( + ( * c0 c38 ) ( + ( * c40 c54 ) ( + ( * c41 c56 ) ( + ( * c0 c58 ) ( + ( * c0 c60 ) ( + ( * c0 c62 ) ( + ( * c0 c65 ) ( + ( * c0 c67 ) ( + ( * c0 c69 ) ( + ( * c0 c72 ) ( + ( * c0 c74 ) ( * c0 c76 ) ) ) ) ) ) ) ) ) ) ) ) ( + ( * c52 c39 ) ( + ( * c0 c53 ) ( + ( * c0 c55 ) ( + ( * c57 c99 ) ( + ( * c42 c59 ) ( + ( * c43 c61 ) ( + ( * c44 c63 ) ( + ( * c64 c100 ) ( + ( * c45 c66 ) ( + ( * c46 c68 ) ( + ( * c47 c70 ) ( + ( * c71 c101 ) ( + ( * c48 c73 ) ( + ( * c49 c75 ) ( + ( * c50 c77 ) ( * c78 c102 ) ) ) ) ) ) ) ) ) ) ) ) ) ) ) ) ) ) ) ( + ( * c91 p92 ) p36 ) ) )";
     //vector<string> updated_cons_fd_expressions ={} ;
     //updated_cons_fd_expressions = simplified_expressions ;
@@ -1636,7 +1637,7 @@ void Compiler::format_vectorized_code(const std::shared_ptr<ir::Func> &func)
     vector<string> updated_cons_fd_expressions = {};
     for(const auto& expr : simplified_expressions){
         auto tokens1 = split(expr);
-        //std::cout<<"Input expression :"<<expr<<" \n";
+        std::cout<<"Input expression :"<<expr<<" \n";
         string res = vector_constant_folding(tokens1,inputs_entries);
         updated_cons_fd_expressions.push_back(res);
     }
@@ -1644,19 +1645,19 @@ void Compiler::format_vectorized_code(const std::shared_ptr<ir::Func> &func)
     vector<string> labels = {};
     for (const auto& pair : inputs_entries) {
       std::cout << "pair.first = " << pair.first << std::endl;
-      labels.push_back(pair.first);  // Access the key via pair.first
+      labels.push_back(pair.first);
     }
     unordered_map<string,int> inputs_occurences ={};
     for(auto label : labels){
       inputs_occurences.insert({label,0});
     }
     for(const auto &expr : updated_cons_fd_expressions){
-        // std::cout << "the expr in the updated expression is : " << expr << std::endl;
+        std::cout << "the expr in the updated expression is : " << expr << std::endl;
         vector<string> tokens = split_string(expr,' ');
         for(int i =0;i<tokens.size();i++){
           std::cout << "the token is : " << tokens[i] << std::endl;
           for(auto label : labels){
-            std::cout << "the label is : " << label << std::endl;
+            // std::cout << "the label is : " << label << std::endl;
               if(label==tokens[i]){
                 inputs_occurences[label]+=1;
               }
@@ -1727,7 +1728,7 @@ void Compiler::format_vectorized_code(const std::shared_ptr<ir::Func> &func)
     std::cout<<"Creating the new inputs \n";
     for(const auto& new_input_info : inputs_entries){
       string label = new_input_info.first ;
-      std::cout << "new input info : " <<new_input_info.first << std::endl;
+      // std::cout << "new input info : " <<new_input_info.first << std::endl;
       if(label.substr(0,1)=="c"){
           Ciphertext cipher(label);
           func->init_input(cipher,move(label));
@@ -1736,20 +1737,20 @@ void Compiler::format_vectorized_code(const std::shared_ptr<ir::Func> &func)
           func->init_input(plain,move(label));
       }
     }
-    std::cout<<"Number of function inputs : "<<func->data_flow().inputs_info().size()<<"\n";
+    // std::cout<<"Number of function inputs : "<<func->data_flow().inputs_info().size()<<"\n";
     for(auto new_output_label : outputs){
-      std::cout<<"Add new output :"<<new_output_label<<" \n";
+      // std::cout<<"Add new output :"<<new_output_label<<" \n";
       Ciphertext cipher(new_output_label);
       func->set_output(cipher,move(new_output_label));
     }
-    std::cout<<"Store input_elements in myMap \n";
+    // std::cout<<"Store input_elements in myMap \n";
     for (auto input_info : func->data_flow().inputs_info())
     {
       ir::Term *temp = const_cast<ir::Term *>(input_info.first);
       myMap[input_info.second.label_] = temp;
-      std::cout << "my map first elemtn : " << input_info.first << "\n" << std::endl;
-      std::cout << "temp = " << temp << std::endl;
-      std::cout << "myMap index for input : " << input_info.second.label_ << std::endl;
+      // std::cout << "my map first elemtn : " << input_info.first << "\n" << std::endl;
+      // std::cout << "temp = " << temp << std::endl;
+      // std::cout << "myMap index for input : " << input_info.second.label_ << std::endl;
     }
     vector<const ir::Term *> output_terms;
     
@@ -1781,3 +1782,5 @@ void Compiler::format_vectorized_code(const std::shared_ptr<ir::Func> &func)
     }
 }
 } // namespace fheco
+
+
