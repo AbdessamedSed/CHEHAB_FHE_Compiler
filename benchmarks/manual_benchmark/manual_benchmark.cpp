@@ -15,42 +15,9 @@ void fhe_vectorized(int slot_count){
   Ciphertext sum = SumVec(slot_wise_diff,slot_count);
   sum.set_output("result"); 
 }
-/***************************/
-// void fhe(int slot_count)
-// {
-//   size_t size = slot_count;
-//   std::vector<Ciphertext> v1(size);
-//   std::vector<Ciphertext> v2(size);
-//   //std::vector<Ciphertext> output(size);
-//   Ciphertext output = Ciphertext(Plaintext(0));
-//   for (int i = 0; i < size; i++)
-//   {
-//     v1[i] = Ciphertext("c1_" + std::to_string(i));
-//   }
-//   for (int i = 0; i < size; i++)
-//   { 
-//     v2[i] = Ciphertext("c2_" + std::to_string(i));
-//     if(i==0){
-//         output = (v2[i] - v1[i]) * (v2[i] - v1[i]); 
-//     }else{
-//       output += (v2[i] - v1[i]) * (v2[i] - v1[i]);
-//     }
-//   }
-//   output.set_output("result");
-// }
-
-// void fhe(int slot_count)
-// {
-
-//     Ciphertext output;
-
-//     output.set_output("output");
-// }
 
 void fhe(int slot_count) {
   Ciphertext output;
-  // output = (Ciphertext("v_46") + Ciphertext("v_234")) + (Ciphertext("v_1") + Ciphertext("v_93")) + ( Ciphertext("v_12") * Ciphertext("v_11") );
-  // output = ( ( ( ( ( Ciphertext("v_739") * Ciphertext("v_26") ) + ( Ciphertext("v_405") + Ciphertext("v_446") ) ) * ( ( Ciphertext("v_991") * Ciphertext("v_341") ) * ( Ciphertext("v_125") * Ciphertext("v_50") ) ) ) * ( ( ( Ciphertext("v_294") + Ciphertext("v_673") ) * ( Ciphertext("v_474") * Ciphertext("v_210") ) ) * ( ( Ciphertext("v_33") * Ciphertext("v_787") ) * ( Ciphertext("v_309") + Ciphertext("v_511") ) ) ) ) + ( ( ( ( Ciphertext("v_3") * Ciphertext("v_276") ) + ( Ciphertext("v_404") * Ciphertext("v_152") ) ) * ( ( Ciphertext("v_16") + Ciphertext("v_848") ) + ( Ciphertext("v_115") + Ciphertext("v_620") ) ) ) + ( ( ( Ciphertext("v_623") + Ciphertext("v_234") ) * ( Ciphertext("v_42") * Ciphertext("v_595") ) ) + ( ( Ciphertext("v_421") + Ciphertext("v_484") ) + ( Ciphertext("v_305") + Ciphertext("v_718") ) ) ) ) );
   output = ( Ciphertext("v_46") + ( Ciphertext("v_234") + ( Ciphertext("v_405") + ( Ciphertext("v_446") + ( Ciphertext("v_991") + Ciphertext("v_341") ) ) ) ) );
 
   output.set_output("output");
@@ -108,6 +75,7 @@ int main(int argc, char **argv)
   /**************/t = chrono::high_resolution_clock::now();
   if (vectorized)
   { 
+      int benchmark_type = 10;  // output_number = 1  , structured = 0
       const auto &func = Compiler::create_func(func_name, 1, 20, true, true);
       fhe(slot_count);
       string gen_name = "_gen_he_" + func_name;
@@ -119,7 +87,7 @@ int main(int argc, char **argv)
       if (!source_os)
         throw logic_error("failed to create source file");
       cout << " window is " << window << endl;
-      Compiler::gen_vectorized_code(func, window);
+      Compiler::gen_vectorized_code(func, window, benchmark_type);
       auto ruleset = Compiler::Ruleset::ops_cost;
       auto rewrite_heuristic = trs::RewriteHeuristic::bottom_up;
       Compiler::compile(func, ruleset, rewrite_heuristic, header_os, gen_name + ".hpp", source_os);  

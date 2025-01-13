@@ -28,6 +28,11 @@ define_language! {
         "VecAddRotP" = VecAddRotP([Id; 3]),
         "VecMinusRotP" = VecMinusRotP([Id; 3]),
         "VecMulRotP" = VecMulRotP([Id; 3]),
+        
+        // Op for structured code
+        "VecAddRotS" = VecAddRotS([Id; 2]),
+        "VecMinusRotS" = VecMinusRotS([Id; 2]),
+        "VecMulRotS" = VecMulRotS([Id; 2]),
 
         // Vector operations that take 1 vector of inputs
         "VecNeg" = VecNeg([Id; 1]),
@@ -60,7 +65,8 @@ impl Analysis<VecLang> for ConstantFold {
             // VecAdd and similar operations return None to skip i32 representation
             VecLang::VecAdd(_) | VecLang::VecMul(_) | VecLang::Vec(_) | VecLang::VecMinus(_) | VecLang::VecNeg(_) | 
             VecLang::VecAddRotF(_) | VecLang::VecMinusRotF(_) | VecLang::VecMulRotF(_) |
-            VecLang::VecAddRotP(_) | VecLang::VecMinusRotP(_) | VecLang::VecMulRotP(_) => return None,
+            VecLang::VecAddRotP(_) | VecLang::VecMinusRotP(_) | VecLang::VecMulRotP(_) |
+            VecLang::VecAddRotS(_) | VecLang::VecMinusRotS(_) | VecLang::VecMulRotS(_) => return None,
             _ => return None,
         })
     }

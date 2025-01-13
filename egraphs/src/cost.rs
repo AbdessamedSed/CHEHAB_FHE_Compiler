@@ -196,9 +196,9 @@ impl CostFunction<VecLang> for VecCostFn<'_> {
             VecLang::VecMinus(..) => VEC_OP,
             VecLang::VecMul(..) => VEC_OP * 10_000,
 
-            VecLang::VecAddRotF(..) => VEC_OP * 10,
-            VecLang::VecMinusRotF(..) => VEC_OP * 10,
-            VecLang::VecMulRotF(..) => VEC_OP * 70,
+            VecLang::VecAddRotF(..) | VecLang::VecAddRotS(..) => VEC_OP * 10,
+            VecLang::VecMinusRotF(..) | VecLang::VecMinusRotS(..) => VEC_OP * 10,
+            VecLang::VecMulRotF(..) | VecLang::VecMulRotS(..) => VEC_OP * 70,
 
             VecLang::VecAddRotP(..) => VEC_OP * 5_000,
             VecLang::VecMinusRotP(..) => VEC_OP * 5_000,

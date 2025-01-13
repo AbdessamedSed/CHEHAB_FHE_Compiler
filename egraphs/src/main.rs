@@ -17,27 +17,27 @@ fn main() {
                 .required(true)
                 .index(2),
         )
-        // .arg(
-        //     Arg::with_name("rule_filtering")
-        //     .help("Boolean to enable or disable rule filtering before each iteartion when building the e-graph")
-        //     .required(false)
-        //     .index(3)
-        // )
-        // .arg(
-        //     Arg::with_name("sorting")
-        //     .help("Sort the eclasses before calculating the cost")
-        //     .required(false)
-        //     .index(4)
-        // )
-        // .arg(
-        //     Arg::with_name("exp_rules")
-        //     .help("Boolean to enable or disable the expensive rules")
-        //     .required(false)
-        //     .index(5)
-        // )
+        .arg(
+            Arg::with_name("benchmark_type")
+            .help("Specify the type of the benchamark to select the rules to apply")
+            .required(true)
+            .index(3)
+        )
         .get_matches();
 
     use std::{env, fs};
+
+    let vector_width: usize = matches
+        .value_of("vector_width")
+        .unwrap()
+        .parse()
+        .expect("Number must be a valid usize");
+
+    let benchmark_type: usize = matches
+        .value_of("benchmark_type")
+        .unwrap()
+        .parse()
+        .expect("Number must be a valid usize");
 
     // Get a path string to parse a program.
     let path = matches.value_of("INPUT").unwrap();
@@ -49,10 +49,13 @@ fn main() {
     eprintln!("the input expression is : {:?}", prog_str);
     let mut prog_str = prog_str.trim().to_string(); // Trim any leading/trailing whitespace
 
-    if prog_str.starts_with("(Vec") {
+     // if the benchmark is unstrucutred (10), we remove the initial part 'Vec(' which is added for
+    // syntactic considerations, else, we let it 
+
+    if benchmark_type == 10 {
+        eprintln!("remowing useless chars");
         // Remove "(Vec" at the start
         prog_str = prog_str.strip_prefix("(Vec ").unwrap_or(&prog_str).to_string();
-
         // Remove the last character (if it exists)
         prog_str.pop();
         prog_str.pop();
@@ -61,39 +64,22 @@ fn main() {
     // Print the cleaned-up expression
     eprintln!("The cleaned expression is: {:?}", prog_str);
     let prog = prog_str.parse().unwrap();
-    let vector_width: usize = matches
-        .value_of("vector_width")
-        .unwrap()
-        .parse()
-        .expect("Number must be a valid usize");
-
-    // let rule_filtering = matches
-    //     .value_of("rule_filtering")
-    //     .unwrap_or("false")
-    //     .parse::<bool>()
-    //     .expect("rule_filtering must be a valid boolean");
-
-    // let sorting = matches
-    //     .value_of("sorting")
-    //     .unwrap_or("false")
-    //     .parse::<bool>()
-    //     .expect("sorting must be a valid boolean");
-
-    // let exp_rules = matches
-    //     .value_of("exp-rules")
-    //     .unwrap_or("false")
-    //     .parse::<bool>()
-    //     .expect("exp-rules must be a valid boolean");
 
     // Record the start time
     let start_time = Instant::now();
 
+    // Some parameters
+    let rule_filtering = false;
+    let sorting = true;
+    let exp_rules = false;
+
     // Run rewriter
     eprintln!(
-        "Running egg with timeout {:?}s, width: {:?}, rule_filtering: {:?}, sorting: {:?}, exp-rules: {:?}",
-        timeout, vector_width, false, false, false
+        "Running egg with benchmark_type {:?}, timeout {:?}s, width: {:?}, rule_filtering: {:?}, sorting: {:?}, exp-rules: {:?}",
+        benchmark_type, timeout, vector_width, rule_filtering, sorting, exp_rules
     );
-    let (cost, best) = rules::run(&prog, timeout, vector_width, false, false, false);
+    let (cost, best) = 
+        rules::run(&prog, timeout, benchmark_type, vector_width, rule_filtering, exp_rules, exp_rules);
 
     // Record the end time
     let duration = start_time.elapsed();

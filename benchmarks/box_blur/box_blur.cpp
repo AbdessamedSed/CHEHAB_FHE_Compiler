@@ -9,6 +9,11 @@ using namespace fheco;
 #include <vector>
 #include <cmath>
  
+ /************
+ The purpose of the compiler is to generate fhe_vecrorized from fhe code (scalar)
+ then, use the simplification to simplify it
+ ************/
+
 /**************************/
 void fhe_vectorized(int width){
   vector<vector<integer>> kernel = {{1, 1, 1}, {1, 1, 1}, {1, 1, 1}};

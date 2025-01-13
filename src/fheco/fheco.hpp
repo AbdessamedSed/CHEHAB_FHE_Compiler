@@ -6,6 +6,7 @@
 #include "fheco/dsl/ciphertext.hpp"
 #include "fheco/dsl/common.hpp"
 #include "fheco/dsl/compiler.hpp"
+#include "fheco/dsl/benchmark_types.hpp"
 #include "fheco/dsl/ops_overloads.hpp"
 #include "fheco/dsl/plaintext.hpp"
 #include "fheco/trs/common.hpp"

@@ -168,6 +168,7 @@ int main(int argc, char **argv) {
     string func_name = "fhe";
     size_t slot_count = 1;
     if(vectorized){
+        int benchmark_type = 10;  // output_number = 1  , structured = 0
         const auto &func = Compiler::create_func(func_name, slot_count, 20, false, true);
         fhe(depth, iteration, regime);
         string gen_name = "_gen_he_" + func_name;
@@ -182,7 +183,7 @@ int main(int argc, char **argv) {
             throw logic_error("Failed to create source file");
         }
         cout << " window is " << window << endl;
-        Compiler::gen_vectorized_code(func, window /*is_structured*/);  // add a flag to specify if the benchmark is structured or no
+        Compiler::gen_vectorized_code(func, window, benchmark_type);  // add a flag to specify if the benchmark is structured or no
         auto ruleset = Compiler::Ruleset::ops_cost;
         auto rewrite_heuristic = trs::RewriteHeuristic::bottom_up;
         Compiler::compile(func, ruleset, rewrite_heuristic, header_os, gen_name + ".hpp", source_os);

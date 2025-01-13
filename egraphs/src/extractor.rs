@@ -43,7 +43,7 @@ where
                 oredered_eclasses = Self::semi_topological_sort(egraph, root);
                 let end_sorting = start_sorting.elapsed();
 
-                eprintln!("time to sort is : {:?}", end_sorting);
+                debug!("time to sort is : {:?}", end_sorting);
                 extractor.find_costs(oredered_eclasses);
             } else {
                 extractor.find_costs(oredered_eclasses);
@@ -282,7 +282,7 @@ where
         let mut i = 0;
         let mut eclasses_iter: Vec<&EClass<L, N::Data>> = Vec::new();
 
-        // eprintln!("ordered eclasses : {:?}", oredered_eclasses);
+        // debug!("ordered eclasses : {:?}", oredered_eclasses);
 
         if oredered_eclasses.is_empty() {
             for ecl in self.egraph.classes() {
@@ -304,7 +304,7 @@ where
 
             did_something = false;
             i += 1;
-            eprintln!("iteration number {:?}", i);
+            debug!("iteration number {:?}", i);
 
             for class in &eclasses_iter {
                 let pass = self.make_pass(&mut sub_classes, class);
@@ -331,17 +331,17 @@ where
 
             // Measure the time for the current iteration
             let duration = start_time.elapsed();
-            eprintln!("Iteration {} took {:?}", i, duration);
+            debug!("Iteration {} took {:?}", i, duration);
             debug!("did_something is {:?}", did_something);
-            eprintln!("total_time to update is {:?} for iteration {:}", time_to_pdate.as_secs_f64(), i);
+            debug!("total_time to update is {:?} for iteration {:}", time_to_pdate.as_secs_f64(), i);
         }
 
-        eprintln!("Total number of iterations: {}", i);
+        debug!("Total number of iterations: {}", i);
 
         // Log an error message for any e-class that failed to compute a cost
         for class in self.egraph.classes() {
             if !self.costs.contains_key(&class.id) {
-                eprintln!(
+                debug!(
                     "Failed to compute cost for eclass {}: {:?}",
                     class.id, class.nodes
                 );
