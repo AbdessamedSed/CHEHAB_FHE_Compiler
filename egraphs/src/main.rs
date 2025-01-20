@@ -51,7 +51,7 @@ fn main() {
         .and_then(|t| t.parse::<u64>().ok())
         .unwrap_or(300);
     let prog_str = fs::read_to_string(path).expect("Failed to read the input file.");
-    eprintln!("the input expression is : {:?}", prog_str);
+    debug!("the input expression is : {:?}", prog_str);
 
      // if the benchmark is unstrucutred (10), we remove the initial part 'Vec(' which is added for
     // syntactic considerations, else, we let it 
@@ -77,16 +77,13 @@ fn main() {
 
         // Record the start time
         let start_time = Instant::now();
-        // Run rewriter
-        eprintln!(
-            "Running egg with benchmark_type {:?}, timeout {:?}s, width: {:?}, rule_filtering: {:?}, sorting: {:?}, exp-rules: {:?}",
-            benchmark_type, timeout, vector_width, rule_filtering, sorting, exp_rules
-        );
+       
+
         let (cost, best) = 
             rules::run(&prog, timeout, benchmark_type, vector_width, rule_filtering, sorting, exp_rules, 0 /*rules set order is not required here*/);
+        let duration = start_time.elapsed();
 
         // Record the end time
-        let duration = start_time.elapsed();
 
         // Print the results
 
@@ -97,7 +94,7 @@ fn main() {
         */
         println!("{} {}",vector_width,vector_width);
         eprintln!("\nCost: {}", cost);
-        eprintln!("Time taken: {:?} to finish", duration);
+        eprintln!("Time taken in egraph: {:?} to finish", duration);
         
     } else {
         let mut current_cost = 0.0 ;
@@ -107,7 +104,7 @@ fn main() {
         let mut previous_cost = f64::MAX;
         let mut comp = 0;
         let mut current_expr : RecExpr<VecLang>= prog_str.parse().unwrap();
-
+        let start_time = Instant::now();
 
         let mut current_vector_width = vector_width; 
         while comp != rulesets_appplying_order.len() {
@@ -115,7 +112,7 @@ fn main() {
             current_expr = best ; 
             current_cost = cost ;
             current_vector_width = rules_2::get_vector_width(&current_expr);
-            eprintln!("===> vector width in this iteration : {:?}", current_vector_width);
+            debug!("===> vector width in this iteration : {:?}", current_vector_width);
             if current_cost == previous_cost{
                 comp+=1;
             }else{
@@ -123,17 +120,19 @@ fn main() {
                 comp=0;
             }
             iteration = iteration + 1 ;
-            eprintln!("Best cost at iteration {}: {} ", iteration + 1, current_cost);
+            debug!("Best cost at iteration {}: {} ", iteration + 1, current_cost);
             //eprintln!("Obtained expression ==> : {}", current_expr.to_string());
         }
         let best_cost = current_cost ;
         let best_expr = current_expr.clone(); 
         // Print the results
+        let duration = start_time.elapsed();
         println!("{}", best_expr.to_string()); /* Pretty print with width 80 */
-        eprintln!("best expression : {:?}", best_expr.to_string());
+        debug!("best expression : {:?}", best_expr.to_string());
         println!("{} {}",current_vector_width,current_vector_width);
-        eprintln!("\n===> Final expression depth : {}", rules_2::ast_depth(&best_expr));
+        debug!("\n===> Final expression depth : {}", rules_2::ast_depth(&best_expr));
         eprintln!("\nCost: {}", best_cost);
+        eprintln!("Time taken in egraph: {:?} to finish", duration);
         
     }
 

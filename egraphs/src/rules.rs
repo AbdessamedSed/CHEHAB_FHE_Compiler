@@ -36,7 +36,7 @@ pub fn run(
     debug!("rule_filtering is {:?}", rule_filtering);
     debug!("sorting is {:?}", sorting);
     debug!("exp_rules is {:?}", exp_rules);
-    eprintln!("benchmark type {:?}", benchmark_type);
+    debug!("benchmark type {:?}", benchmark_type);
 
     debug!("the begining expression is : {:?}", prog);
 
@@ -81,7 +81,7 @@ pub fn run(
     // );
 
     if benchmark_type == UNSTRUCTURED_WITH_ONE_OUTPUT {   // One output, not structured
-        eprintln!("unstructured code with one output");
+        debug!("unstructured code with one output");
         rules_1::generate_rules_unstructured_code(
             optimized_rw,
             initial_operations.clone(),
@@ -97,8 +97,8 @@ pub fn run(
             &mut initial_rules,
             &mut rules
         );
-    } else if benchmark_type == STRUCTURED_WITH_ONE_OUTPUT {
-        eprintln!("structured code with one output");
+    } else if benchmark_type == STRUCTURED_WITH_ONE_OUTPUT || benchmark_type == STRUCTURED_WITH_MULTIPLE_OUTPUTS {
+        debug!("structured code with one output or multiple outpits");
         debug!("vector width is {:?}", vector_width);
         let expression_depth : usize = rules_2::ast_depth(&prog);
         debug!("depth of the expression is : {:?}", expression_depth);
@@ -107,7 +107,7 @@ pub fn run(
             3 => {rules = rules_2::minus_rules(vector_width,expression_depth);},
             4 => {rules = rules_2::multiplication_rules(vector_width,expression_depth);},
             5 => {rules = rules_2::neg_rules(vector_width,expression_depth); }, 
-            _ => eprintln!("Ruleset correspoding to this order doesnt exist"),
+            _ => debug!("Ruleset correspoding to this order doesnt exist"),
         }
     }
     
@@ -144,16 +144,16 @@ pub fn run(
         .run(&rules, &initial_rules, rules_info, optimized_rw);
 
         let report = runner.report();
-        eprintln!("report : {:?}", report);
+        debug!("report : {:?}", report);
         /* for the rules , if the rule is expensive we add the prefix exp to its name */
 
 
     // Stop timing after the e-graph is built
     let build_time = start_time.elapsed();
-    eprintln!("E-graph built in {:?}", build_time);
+    debug!("E-graph built in {:?}", build_time);
 
     // Print the reason for stopping to STDERR
-    eprintln!(
+    debug!(
         "Stopped after {} iterations, reason: {:?}",
         runner.iterations.len(),
         runner.stop_reason
@@ -163,13 +163,13 @@ pub fn run(
 
     // Extract the e-graph and the root node
     let (eg, root) = (runner.egraph, runner.roots[0]);
-    eprintln!("final number of enodes : {:?}", eg.total_size());
+    debug!("final number of enodes : {:?}", eg.total_size());
     // print_egraph(eg.clone());
 
 
     let best_cost: f64;
     let best_expr; // best_expr: RecExpr<VecLang> = RecExpr::default();
-    eprintln!("begining of extraction 0 .... ");
+    debug!("begining of extraction 0 .... ");
 
     /* we have 3 ways fot the extraction:
         1) greedy_extraction: takes decisions locally
@@ -221,10 +221,10 @@ pub fn run(
     // let extract_time = start_extract_time.elapsed();
 
     // Stop timing after the extraction is complete
-    eprintln!("display final results");
-    eprintln!("Expression extraction took {:?}", extract_time);
-    eprintln!("Final cost is {}", best_cost);
-    eprintln!("Extracted Expression : {}", best_expr);
+    debug!("display final results");
+    debug!("Expression extraction took {:?}", extract_time);
+    debug!("Final cost is {}", best_cost);
+    debug!("Extracted Expression : {}", best_expr);
 
     // Return the extracted cost and expression
     (best_cost, best_expr)

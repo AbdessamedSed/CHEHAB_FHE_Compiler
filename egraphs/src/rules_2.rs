@@ -6,6 +6,7 @@ use crate::{
 use egg::rewrite as rw;
 use egg::*;
 use core::cmp::min;
+use log::debug;
 
 pub fn ast_depth(expr: &RecExpr<VecLang>) -> usize {
     fn depth_helper(id: Id, expr: &RecExpr<VecLang>) -> usize {
@@ -156,7 +157,7 @@ pub fn vectorization_rules(vector_width: usize) -> Vec<Rewrite<VecLang, Constant
     )
     .parse()
     .unwrap();
-    eprintln!("{} => {}", lhs_add, rhs_add);
+    debug!("{} => {}", lhs_add, rhs_add);
     let rhs_mul: Pattern<VecLang> = format!(
         "(VecMul (Vec {}) (Vec {}))",
         applier_1.concat(),
@@ -217,7 +218,7 @@ pub fn rules0(vector_width: usize) -> Vec<Rewrite<VecLang, ConstantFold>> {
 /**************************** Rules for rotations *************************/
 pub fn addition_rules(vector_width: usize, expression_depth: usize) -> Vec<Rewrite<VecLang, ConstantFold>>{
     let base: usize = 2;
-    eprintln!("=====>expression_depth : {}",expression_depth);
+    debug!("=====>expression_depth : {}",expression_depth);
     let mut max_vector_size : usize = base.pow(expression_depth as u32 - 1) * vector_width; 
     max_vector_size = min(max_vector_size,4096);
     let mut rules: Vec<Rewrite<VecLang, ConstantFold>> = vec![
@@ -237,7 +238,7 @@ pub fn addition_rules(vector_width: usize, expression_depth: usize) -> Vec<Rewri
         ),
     ];
     let mut initial_vector_size : usize = 1 ;
-    eprintln!("=====>max_vector_size : {}",max_vector_size);
+    debug!("=====>max_vector_size : {}",max_vector_size);
     while initial_vector_size <= max_vector_size{
         let mut searcher_add = Vec::new();
         let mut applier_1 = Vec::new();
