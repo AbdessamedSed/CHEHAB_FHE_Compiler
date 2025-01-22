@@ -8,7 +8,7 @@ using namespace fheco;
 #include <string>
 #include <vector>
 #include <cmath>
-#include "fheco/dsl/benchmark_types.cpp" 
+#include "../global_variables.hpp" 
 /**************************/
 void fhe_vectorized(int width){
   vector<vector<integer>> kernel = {{1, 1, 1}, {1, 1, 1}, {1, 1, 1}};
@@ -134,8 +134,14 @@ int main(int argc, char **argv)
         throw logic_error("failed to create source file");
       cout << " window is " << window << endl;
       Compiler::gen_vectorized_code(func, window, benchmark_type);
-      Compiler::gen_he_code(func, header_os, gen_name + ".hpp", source_os);
-      
+      if (SIMPLIFICATION_WITH_EGRAPHS) {
+          Compiler_Simplification::compile(func, header_os, gen_name + ".hpp", source_os, true, 0);
+      } else {
+          // Compiler::gen_he_code(func, header_os, gen_name + ".hpp", source_os);
+          auto ruleset = Compiler::Ruleset::ops_cost;
+          auto rewrite_heuristic = trs::RewriteHeuristic::bottom_up;
+          Compiler::compile(func, ruleset, rewrite_heuristic, header_os, gen_name + ".hpp", source_os);
+      }
       /************/elapsed = chrono::high_resolution_clock::now() - t;
       
       cout << elapsed.count() << " ms\n";
@@ -176,24 +182,3 @@ int main(int argc, char **argv)
   }
   return 0;
 }
-/*
- rw!("assoc-balan-add-mul-1"; 
-        "(VecAdd (VecAdd (VecAdd (VecMul ?c1 ?c2) (VecMul ?d1 ?d2)) (VecMul ?b1 ?b2)) (VecMul ?a1 ?a2))" => 
-        "(VecAdd (VecAdd (VecMul ?a1 ?a2) (VecMul ?b1 ?b2)) (VecAdd (VecMul ?c1 ?c2) (VecMul ?d1 ?d2)))"
-        if is_vec_mul("?a1","?a2","?b1","?b2","?c1","?c2","?d1","?d2")
-        ),
-        rw!("assoc-balan-add-mul-2"; 
-        "(VecAdd (VecAdd (VecMul ?b1 ?b2) (VecAdd (VecMul ?c1 ?c2) (VecMul ?d1 ?d2))) (VecMul ?a1 ?a2))" => 
-        "(VecAdd (VecAdd (VecMul ?a1 ?a2) (VecMul ?b1 ?b2)) (VecAdd (VecMul ?c1 ?c2) (VecMul ?d1 ?d2)))"
-        if is_vec_mul("?a1","?a2","?b1","?b2","?c1","?c2","?d1","?d2")
-        ),
-        rw!("assoc-balan-add-mul-3"; 
-        "(VecAdd (VecAdd (VecMul ?a1 ?a2) (VecAdd (VecMul ?b1 ?b2) (VecMul ?c1 ?c2))) (VecMul ?d1 ?d2))" => 
-        "(VecAdd (VecAdd (VecMul ?a1 ?a2) (VecMul ?b1 ?b2)) (VecAdd (VecMul ?c1 ?c2) (VecMul ?d1 ?d2)))"
-        if is_vec_mul("?a1","?a2","?b1","?b2","?c1","?c2","?d1","?d2")
-        ),
-        rw!("distribute-mul-over-add"; 
-        "(VecMul ?a (VecAdd ?b ?c))" => "(VecAdd (VecMul ?a ?b) (VecMul ?a ?c))"
-        if is_vec("?a","?b","?c","?c")
-        ),
-*/

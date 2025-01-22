@@ -144,7 +144,7 @@ pub fn run(
         .run(&rules, &initial_rules, rules_info, optimized_rw);
 
         let report = runner.report();
-        debug!("report : {:?}", report);
+        eprintln!("report : {:?}", report);
         /* for the rules , if the rule is expensive we add the prefix exp to its name */
 
 

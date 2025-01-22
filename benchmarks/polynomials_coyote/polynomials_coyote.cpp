@@ -12,7 +12,7 @@
 #include <random>
 using namespace std;
 using namespace fheco;
-#include "fheco/dsl/benchmark_types.cpp"
+#include "../global_variables.hpp" 
 
 std::ofstream outFile("fhe_io_example.txt", std::ios::trunc);
 
@@ -188,8 +188,14 @@ int main(int argc, char **argv) {
         auto ruleset = Compiler::Ruleset::ops_cost;
         auto rewrite_heuristic = trs::RewriteHeuristic::bottom_up;
         Compiler::compile(func, ruleset, rewrite_heuristic, header_os, gen_name + ".hpp", source_os);
-        Compiler::gen_he_code(func, header_os, gen_name + ".hpp", source_os);
-        /************/elapsed = chrono::high_resolution_clock::now() - t;
+        if (SIMPLIFICATION_WITH_EGRAPHS) {
+          Compiler_Simplification::compile(func, header_os, gen_name + ".hpp", source_os, true, 0);
+        } else {
+          // Compiler::gen_he_code(func, header_os, gen_name + ".hpp", source_os);
+          auto ruleset = Compiler::Ruleset::ops_cost;
+          auto rewrite_heuristic = trs::RewriteHeuristic::bottom_up;
+          Compiler::compile(func, ruleset, rewrite_heuristic, header_os, gen_name + ".hpp", source_os);
+        }        /************/elapsed = chrono::high_resolution_clock::now() - t;
         cout << elapsed.count() << " ms\n";
         if (call_quantifier)
         {

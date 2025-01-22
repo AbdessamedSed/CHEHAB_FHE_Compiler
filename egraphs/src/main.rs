@@ -58,7 +58,7 @@ fn main() {
 
       // Some parameters
       let rule_filtering = false;
-      let sorting = false;
+      let sorting = true;
       let exp_rules = false;
 
 

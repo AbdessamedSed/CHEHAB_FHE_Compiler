@@ -336,7 +336,7 @@ where
             debug!("total_time to update is {:?} for iteration {:}", time_to_pdate.as_secs_f64(), i);
         }
 
-        debug!("Total number of iterations: {}", i);
+        eprintln!("Total number of iterations: {}", i);
 
         // Log an error message for any e-class that failed to compute a cost
         for class in self.egraph.classes() {

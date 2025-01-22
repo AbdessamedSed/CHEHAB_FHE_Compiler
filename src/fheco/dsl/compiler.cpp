@@ -7,7 +7,7 @@
 #include "fheco/passes/passes.hpp"
 #include "fheco/util/common.hpp"
 #include "fheco/util/expr_printer.hpp"
-#include "fheco/dsl/benchmark_types.cpp"
+#include "../../../benchmarks/global_variables.cpp"
 #include "compiler.hpp"
 #include <cstring> 
 #include <ctime>
@@ -935,7 +935,6 @@ string process_composed_vectors(const vector<string>& vector_elements,
       }else if(!verify_all_vec_elems_eq0(negation_elements)){
         //std::cout<<"==> Treat Negation case \n";
         decompose_vector_op(negation_elements, vec_ops1 ,vec_ops2);
-       
         return "( - "+process_composed_vectors(vec_ops1,dictionary,inputs_entries,inputs,inputs_types,slot_count,sub_vector_size)+" )";
       }
     }else if(!all_simple_elements_eq_0){

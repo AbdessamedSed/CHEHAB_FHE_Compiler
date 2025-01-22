@@ -17,3 +17,4 @@
 #include "fheco/util/eval_on_clear.hpp"
 #include "fheco/util/expr_printer.hpp"
 #include "fheco/util/quantifier.hpp"
+#include "fheco/dsl/compiler_simplification.hpp"

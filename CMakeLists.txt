@@ -9,7 +9,7 @@ message(STATUS "FHECO_LOGGING: ${FHECO_LOGGING}")
 
 
 set(FHECO_INCLUDES_INSTALL_DIR ${CMAKE_INSTALL_INCLUDEDIR}/FHECO/fheco)
-set(FHECO_SOURCE_FILES "")
+
 add_subdirectory(src/fheco)
 add_library(fheco STATIC ${FHECO_SOURCE_FILES})
 target_include_directories(fheco PUBLIC src)

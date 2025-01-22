@@ -8,8 +8,7 @@ using namespace fheco;
 #include <string>
 #include <vector>
 #include <cmath>
-#include "fheco/dsl/benchmark_types.cpp"
- 
+#include "../global_variables.hpp"  
 /**************************/
 void fhe_vectorized(int width){
   throw invalid_argument("vectorized implementation doesnt exist");
@@ -99,11 +98,14 @@ int main(int argc, char **argv)
       if (!source_os)
         throw logic_error("failed to create source file");
       cout << " window is " << window << endl;
-      //Compiler::gen_vectorized_code(func, window);
-      //Compiler::gen_he_code(func, header_os, gen_name + ".hpp", source_os);
-      auto ruleset = Compiler::Ruleset::ops_cost;
-      auto rewrite_heuristic = trs::RewriteHeuristic::bottom_up;
-      Compiler::compile(func, ruleset, rewrite_heuristic, header_os, gen_name + ".hpp", source_os);
+      if (SIMPLIFICATION_WITH_EGRAPHS) {
+          Compiler_Simplification::compile(func, header_os, gen_name + ".hpp", source_os, true, 0);
+      } else {
+          // Compiler::gen_he_code(func, header_os, gen_name + ".hpp", source_os);
+          auto ruleset = Compiler::Ruleset::ops_cost;
+          auto rewrite_heuristic = trs::RewriteHeuristic::bottom_up;
+          Compiler::compile(func, ruleset, rewrite_heuristic, header_os, gen_name + ".hpp", source_os);
+      }
       /************/elapsed = chrono::high_resolution_clock::now() - t;
       
       cout << elapsed.count() << " ms\n";
