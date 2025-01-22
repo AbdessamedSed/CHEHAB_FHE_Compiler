@@ -2,7 +2,7 @@
 *.d
 
 *.tmp
-
+*.csv
 # Compiled Object files
 *.slo
 *.lo
