@@ -8,6 +8,7 @@ use crate::{
 };
 use crate::rules_1;
 use crate::rules_2;
+use crate::rules_3;
 use std::collections::HashMap;
 use std::collections::HashSet;
 use log::debug;
@@ -107,6 +108,17 @@ pub fn run(
             3 => {rules = rules_2::minus_rules(vector_width,expression_depth);},
             4 => {rules = rules_2::multiplication_rules(vector_width,expression_depth);},
             5 => {rules = rules_2::neg_rules(vector_width,expression_depth); }, 
+            6 => {
+                rules = rules_3::vector_assoc_add_rules();
+                rules.extend(rules_3::vector_assoc_min_rules());
+                rules.extend(rules_3::vector_assoc_mul_rules());
+                rules.extend(rules_3::vector_assoc_add_mul_rules());
+                rules.extend(rules_3::vector_assoc_add_min_rules());
+                rules.extend(rules_3::vector_assoc_min_mul_rules());
+                rules.extend(rules_3::simplificatio_rules_add_min());
+                rules.extend(rules_3::simplificatio_rules_add_mul());
+                rules.extend(rules_3::simplificatio_rules_min_mul());
+            }
             _ => debug!("Ruleset correspoding to this order doesnt exist"),
         }
     }

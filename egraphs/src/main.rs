@@ -100,7 +100,7 @@ fn main() {
         let mut current_cost = 0.0 ;
       
         let mut iteration = 0 ;
-        let rulesets_appplying_order  = vec![2,3,4,5];
+        let rulesets_appplying_order  = vec![2,3,4,5,6];
         let mut previous_cost = f64::MAX;
         let mut comp = 0;
         let mut current_expr : RecExpr<VecLang>= prog_str.parse().unwrap();

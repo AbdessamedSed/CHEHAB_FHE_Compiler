@@ -6,4 +6,5 @@ pub mod veclang;
 pub mod runner;
 pub mod rules_1;
 pub mod rules_2;
+pub mod rules_3;
 
