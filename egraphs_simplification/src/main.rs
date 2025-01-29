@@ -43,6 +43,7 @@ fn main() {
         .and_then(|t| t.parse::<u64>().ok())
         .unwrap_or(300);
     let prog_str = fs::read_to_string(path).expect("Failed to read the input file.");
+    
     let prog = prog_str.parse().unwrap();
 
     // Run rewriter

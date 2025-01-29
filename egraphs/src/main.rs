@@ -133,7 +133,7 @@ fn main() {
         debug!("\n===> Final expression depth : {}", rules_2::ast_depth(&best_expr));
         eprintln!("\nCost: {}", best_cost);
         eprintln!("Time taken in egraph: {:?} to finish", duration);
-        
+        eprintln!("Extracted expression is : {:?}",  best_expr.to_string());
     }
 
     

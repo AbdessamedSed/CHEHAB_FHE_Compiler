@@ -107,9 +107,6 @@ int main(int argc, char **argv)
       throw logic_error("failed to create source file");
     cout << " window is " << window << endl;
     Compiler::gen_vectorized_code(func, window, benchmark_type);
-    auto ruleset = Compiler::Ruleset::ops_cost;
-    auto rewrite_heuristic = trs::RewriteHeuristic::bottom_up;
-    Compiler::compile(func, ruleset, rewrite_heuristic, header_os, gen_name + ".hpp", source_os);
     if (SIMPLIFICATION_WITH_EGRAPHS) {
           Compiler_Simplification::compile(func, header_os, gen_name + ".hpp", source_os, true, 0);
       } else {

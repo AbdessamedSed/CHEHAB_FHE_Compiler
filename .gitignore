@@ -40,6 +40,7 @@
 bin/
 lib/
 build/
+build_simplif/
 *.build
 env
 thirdparty/
