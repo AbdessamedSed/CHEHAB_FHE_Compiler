@@ -130,7 +130,6 @@ fn main() {
         println!("{}", best_expr.to_string()); /* Pretty print with width 80 */
         debug!("best expression : {:?}", best_expr.to_string());
         println!("{} {}",current_vector_width,current_vector_width);
-        debug!("\n===> Final expression depth : {}", rules_2::ast_depth(&best_expr));
         eprintln!("\nCost: {}", best_cost);
         eprintln!("Time taken in egraph: {:?} to finish", duration);
         

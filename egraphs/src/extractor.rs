@@ -166,14 +166,12 @@ where
             let mul_depth_f = |id| costs[&eg.find(id)].1.clone();
             let rotations_f = |id| costs[&eg.find(id)].2.clone();
             let operations_cost_f = |id| costs[&eg.find(id)].3.clone();
-            // let cost_f = |id| costs[&eg.find(id)].0.clone();
 
             let depth = self.cost_function.depth(&node, depth_f);
             let mul_depth = self.cost_function.mul_depth(&node, mul_depth_f);
             let rotations = self.cost_function.rotations(&node, rotations_f);
             let mut operations_cost = self.cost_function.operations_cost(&node, operations_cost_f);
 
-            // let mut cost = self.cost_function.cost(&node, cost_f);
             let children = node.children();
     
             if children.len() == 1 {

@@ -5,6 +5,7 @@ use crate::{
     veclang::{ConstantFold, Egraph, VecLang},
     runner::Runner,
     cost::VecCostFn,
+    lp_extract:: {LpExtractor, LpCostFunction}
 };
 use crate::rules_1;
 use crate::rules_2;
@@ -103,10 +104,19 @@ pub fn run(
         let expression_depth : usize = rules_2::ast_depth(&prog);
         debug!("depth of the expression is : {:?}", expression_depth);
         match selected_ruleset_order {
-            2 => {rules = rules_2::addition_rules(vector_width,expression_depth);},
-            3 => {rules = rules_2::minus_rules(vector_width,expression_depth);},
-            4 => {rules = rules_2::multiplication_rules(vector_width,expression_depth);},
-            5 => {rules = rules_2::neg_rules(vector_width,expression_depth); }, 
+            2 => {
+                rules = rules_2::addition_rules(vector_width, expression_depth);
+            }
+            3 => {
+                rules.extend(rules_2::minus_rules(vector_width,expression_depth));        
+            },
+            4 => {
+                rules.extend(rules_2::multiplication_rules(vector_width,expression_depth));         
+            },
+            5 => {
+                rules.extend(rules_2::neg_rules(vector_width,expression_depth));
+            },
+
             _ => debug!("Ruleset correspoding to this order doesnt exist"),
         }
     }
@@ -167,8 +177,8 @@ pub fn run(
     // print_egraph(eg.clone());
 
 
-    let best_cost: f64;
-    let best_expr; // best_expr: RecExpr<VecLang> = RecExpr::default();
+    let best_cost;
+    let best_expr;
     debug!("begining of extraction 0 .... ");
 
     /* we have 3 ways fot the extraction:
@@ -177,6 +187,13 @@ pub fn run(
         3) sa_extraction: based on simulating annealing metaheuristic
     */
 
+    /*********************************** integer linear programming extraction **********************/
+    // let cost_fn = AstSize {}; 
+    // let start_extract_time = Instant::now();
+    // let mut extractor = LpExtractor::new(&eg, cost_fn);
+    // extractor.timeout(300.0);
+    // (best_expr) = extractor.solve(root);
+    // let extract_time = start_extract_time.elapsed();
    
     /************************************ greedy extraction ******************************************/
     let start_extract_time = Instant::now();
@@ -224,7 +241,7 @@ pub fn run(
     debug!("display final results");
     debug!("Expression extraction took {:?}", extract_time);
     debug!("Final cost is {}", best_cost);
-    debug!("Extracted Expression : {}", best_expr);
+    eprintln!("Extracted Expression : {}", best_expr);
 
     // Return the extracted cost and expression
     (best_cost, best_expr)
