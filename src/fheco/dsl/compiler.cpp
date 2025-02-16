@@ -1047,6 +1047,7 @@ std::pair<std::string, int> process(
     while (index < tokens.size()) {
         if (tokens[index] == "(") {
             index++;
+            
             if (tokens[index] == "Vec"){
                 std::string vector_string = "Vec ";
                 int nested_level = 0;
@@ -1147,8 +1148,10 @@ std::pair<std::string, int> process(
                             id_counter++;
                             return {label, index};
                         }
-                    }
-            /******/new_expression+=" (";
+          } else if(tokens[index] == "VecAdd" | tokens[index] == "+" | tokens[index] == "VecAddRotS" |
+                    tokens[index] == "VecMinus" | tokens[index] == "-" | tokens[index] == "VecMinusRotS" |
+                    tokens[index] == "VecMul" | tokens[index] == "*" | tokens[index] == "VecMulRotS") {
+          /******/new_expression+=" (";
             std::string operation = tokens[index];
             std::string op = 
               operation == "VecAdd" | operation == "+" ? "+" :
@@ -1185,7 +1188,13 @@ std::pair<std::string, int> process(
                 id_counter++;
                 return {label, index};
             }
-        }
+          }   
+        } 
+        else if (tokens[index].rfind("c_", 0) == 0 || tokens[index].rfind("p_", 0) == 0) {
+              std::cout << "ciphertext/plaintext found : " << tokens[index] << std::endl;
+              index++;
+              std::cout << "ciphertext/plaintext found : " << tokens[index] << std::endl;
+            }
     }
     return {"", index};
 }
@@ -1651,6 +1660,54 @@ void processExpression(const std::string& expression, std::vector<int>& vectorSi
 }
 /************************************************************************/
 /************************************************************************/
+std::string wrapStandaloneConstants(const std::string &expr, int numZeros) {
+    std::string result;
+    std::regex pattern(R"(\bc_\d+\b)"); // Match any c_*** (not checking if inside Vec here)
+    std::sregex_iterator it(expr.begin(), expr.end(), pattern);
+    std::sregex_iterator end;
+
+    size_t lastPos = 0;
+    bool insideVec = false;
+    std::string zeroString = std::string(numZeros, '0'); // Create "0 0 ... 0" string
+    for (int i = 1; i < numZeros; ++i) {
+        zeroString += " 0";
+    }
+
+    for (; it != end; ++it) {
+        std::smatch match = *it;
+        size_t start = match.position();
+        size_t end = start + match.length();
+
+        // Scan backwards to check if we are inside Vec(...)
+        for (size_t i = start; i > 0; --i) {
+            if (expr[i] == '(' && expr.substr(i, 4) == "(Vec") {
+                insideVec = true;
+                break;
+            } else if (expr[i] == ')') {
+                break;
+            }
+        }
+
+        // Append previous unmatched part
+        result += expr.substr(lastPos, start - lastPos);
+
+        // Replace only if NOT inside Vec
+        if (!insideVec) {
+            result += "(Vec " + match.str() + " " + zeroString + ")";
+        } else {
+            result += match.str();
+        }
+
+        lastPos = end;
+        insideVec = false;
+    }
+
+    // Append remaining part of the string
+    result += expr.substr(lastPos);
+    return result;
+}
+
+/************************************************************************/
 void Compiler::format_vectorized_code(const std::shared_ptr<ir::Func> &func, int benchmark_type)
 {
     std::vector<int> vectorSizes;
@@ -1703,7 +1760,7 @@ void Compiler::format_vectorized_code(const std::shared_ptr<ir::Func> &func, int
     string expression_to_rotate;  // same remark
     unordered_map<string,string> inputs_entries ={};
 
-    for (const auto& expr : expressions) {
+    for (auto& expr : expressions) {
         if (&expr == &expressions.back()) break;
          /*************************************/
         if (benchmark_type == UNSTRUCTURED_WITH_ONE_OUTPUT) { // the size of the outpt is 1 , like l2_distance
@@ -1714,10 +1771,11 @@ void Compiler::format_vectorized_code(const std::shared_ptr<ir::Func> &func, int
           processExpression(expr, vectorSizes, maxSize);
           slot_count = maxSize;
           sub_vector_size = maxSize;
+          expr = wrapStandaloneConstants(expr, maxSize);
         }
-
         auto tokens = process_vectorized_code(expr);
         std::unordered_map<std::string, std::string> dictionary = {};
+        // std::cout << "expression before calling expr is : " << expr << std::endl;
         process(tokens,0,dictionary,inputs_entries,inputs,inputs_types, slot_count, sub_vector_size,simplified_expression, rotation_flag, expression_to_rotate);
         // Convert new operands VecAddRot, VecMulRot, VecMinusRot
         if (benchmark_type == STRUCTURED_WITH_ONE_OUTPUT || benchmark_type == STRUCTURED_WITH_MULTIPLE_OUTPUTS) {

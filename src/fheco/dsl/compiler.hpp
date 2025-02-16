@@ -15,6 +15,7 @@
 #include <unordered_map>
 #include <utility>
 #include <vector>
+#include <regex>
 
 using std::queue;
 using std::string;
