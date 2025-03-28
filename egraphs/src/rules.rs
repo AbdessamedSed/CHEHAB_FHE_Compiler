@@ -27,7 +27,6 @@ pub fn run(
 ) -> (usize, RecExpr<VecLang>) {
     let optimized_rw = false;
     let sorting = false;
-    let exp_rules = true;
 
     let mut initial_operations = Vec::new();
     eprintln!("rule_filtering is {:?}", rule_filtering);
