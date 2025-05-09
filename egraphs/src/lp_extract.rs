@@ -1,7 +1,7 @@
 use coin_cbc::{Col, Model, Sense};
 use egg::*;
 use std::collections::{HashMap, HashSet};
-use crate::veclang::{Egraph, VecLang};
+use crate::veclang::{VecLang};
 
 pub trait LpCostFunction<L: Language> {
     fn node_cost(&mut self, enode: &L) -> f64;

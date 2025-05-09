@@ -10,14 +10,14 @@ use log::debug;
 use crate::cost;
 use crate::config::*;
 
-pub struct Extractor<'a, CF: cost::CostFunction<L>, L: Language, N: Analysis<L>> {
+pub struct GreedyExtractor<'a, CF: cost::CostFunction<L>, L: Language, N: Analysis<L>> {
     cost_function: CF,
     // the cost contains : depth, mul_depth, rotations, total operations
     costs: HashMap<Id, (f64, f64, f64, f64, L)>,
     egraph: &'a egg::EGraph<L, N>,
 }
 
-impl<'a, CF, L, N> Extractor<'a, CF, L, N>
+impl<'a, CF, L, N> GreedyExtractor<'a, CF, L, N>
 where
     CF: cost::CostFunction<L>,
     L: Language + ToString  + std::fmt::Display,
@@ -31,7 +31,7 @@ where
         ) -> Self
     {
             let costs = HashMap::default();
-            let mut extractor = Extractor {
+            let mut extractor = GreedyExtractor {
                 costs,
                 egraph,
                 cost_function,
@@ -166,12 +166,14 @@ where
             let mul_depth_f = |id| costs[&eg.find(id)].1.clone();
             let rotations_f = |id| costs[&eg.find(id)].2.clone();
             let operations_cost_f = |id| costs[&eg.find(id)].3.clone();
+            // let cost_f = |id| costs[&eg.find(id)].0.clone();
 
             let depth = self.cost_function.depth(&node, depth_f);
             let mul_depth = self.cost_function.mul_depth(&node, mul_depth_f);
             let rotations = self.cost_function.rotations(&node, rotations_f);
             let mut operations_cost = self.cost_function.operations_cost(&node, operations_cost_f);
 
+            // let mut cost = self.cost_function.cost(&node, cost_f);
             let children = node.children();
     
             if children.len() == 1 {
@@ -334,7 +336,7 @@ where
             debug!("total_time to update is {:?} for iteration {:}", time_to_pdate.as_secs_f64(), i);
         }
 
-        eprintln!("Total number of iterations: {}", i);
+        debug!("Total number of iterations: {}", i);
 
         // Log an error message for any e-class that failed to compute a cost
         for class in self.egraph.classes() {

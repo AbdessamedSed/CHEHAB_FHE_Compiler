@@ -34,11 +34,13 @@ void fhe(int slot_count)
     v1[i] = Ciphertext("v1_" + std::to_string(i));
     v2[i] = Ciphertext("v2_" + std::to_string(i));
   }
+
   for (int i = 0; i < size; i++)
   {
     output+= (v1[i] * v2[i]);
   }
   output.set_output("output");
+  
 }
 /******************************************************************************************/
 /******************************************************************************************/
@@ -109,7 +111,7 @@ int main(int argc, char **argv)
     Compiler::gen_vectorized_code(func, window, benchmark_type);
     
     if (SIMPLIFICATION_WITH_EGRAPHS) {
-          Compiler_Simplification::compile(func, header_os, gen_name + ".hpp", source_os, true, 0);
+          // Compiler_Simplification::compile(func, header_os, gen_name + ".hpp", source_os, true, 0);
       } else {
           // Compiler::gen_he_code(func, header_os, gen_name + ".hpp", source_os);
           auto ruleset = Compiler::Ruleset::ops_cost;

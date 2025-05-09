@@ -54,12 +54,7 @@ fn main() {
     debug!("the input expression is : {:?}", prog_str);
 
      // if the benchmark is unstrucutred (10), we remove the initial part 'Vec(' which is added for
-    // syntactic considerations, else, we let it 
-
-      // Some parameters
-      let rule_filtering = false;
-      let sorting = true;
-      let exp_rules = false;
+        // syntactic considerations, else, we let it 
 
 
     if benchmark_type == UNSTRUCTURED_WITH_ONE_OUTPUT {   // one output , unstructured
@@ -80,7 +75,7 @@ fn main() {
        
 
         let (cost, best) = 
-            rules::run(&prog, timeout, benchmark_type, vector_width, rule_filtering, sorting, exp_rules, 0 /*rules set order is not required here*/);
+            rules::run(&prog, timeout, benchmark_type, vector_width, 0 /*rules set order is not required here*/);
         let duration = start_time.elapsed();
 
         // Record the end time
@@ -97,10 +92,11 @@ fn main() {
         eprintln!("Time taken in egraph: {:?} to finish", duration);
         
     } else {
+        // if the benchamrk is structured with one output or several
         let mut current_cost = 0.0 ;
       
         let mut iteration = 0 ;
-        let rulesets_appplying_order  = vec![2,3,4,5];
+        let rulesets_appplying_order  = vec![1,2,3,4,5];
         let mut previous_cost = f64::MAX;
         let mut comp = 0;
         let mut current_expr : RecExpr<VecLang>= prog_str.parse().unwrap();
@@ -108,7 +104,7 @@ fn main() {
 
         let mut current_vector_width = vector_width; 
         while comp != rulesets_appplying_order.len() {
-            let (cost, best) = rules::run(&current_expr, timeout, benchmark_type, current_vector_width,rule_filtering, sorting, exp_rules, rulesets_appplying_order[iteration%rulesets_appplying_order.len()]);
+            let (cost, best) = rules::run(&current_expr, timeout, benchmark_type, current_vector_width, rulesets_appplying_order[iteration%rulesets_appplying_order.len()]);
             current_expr = best ; 
             current_cost = cost ;
             current_vector_width = rules_2::get_vector_width(&current_expr);
@@ -134,6 +130,4 @@ fn main() {
         eprintln!("Time taken in egraph: {:?} to finish", duration);
         
     }
-
-    
 }

@@ -37,6 +37,7 @@ void fhe(int slot_count)
       output += (v2[i] - v1[i]) * (v2[i] - v1[i]);
     }
   }
+    // output = ((Ciphertext("c_1") * Ciphertext("c_2")) + (Ciphertext("c_3") * Ciphertext("c_4"))) * ((((Ciphertext("c_5") * Ciphertext("c_6")) + (Ciphertext("c_7") + Ciphertext("c_8")) * (Ciphertext("c_9") + Ciphertext("c_10"))) * (Ciphertext("c_11") * Ciphertext("c_12"))));
   output.set_output("result");
 }
 
@@ -109,7 +110,7 @@ int main(int argc, char **argv)
       Compiler::gen_vectorized_code(func, window, benchmark_type);
       
       if (SIMPLIFICATION_WITH_EGRAPHS) {
-          Compiler_Simplification::compile(func, header_os, gen_name + ".hpp", source_os, true, 0);
+          // Compiler_Simplification::compile(func, header_os, gen_name + ".hpp", source_os, true, 0);
       } else {
           // Compiler::gen_he_code(func, header_os, gen_name + ".hpp", source_os);
           auto ruleset = Compiler::Ruleset::ops_cost;

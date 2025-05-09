@@ -44,7 +44,7 @@ bool Compiler::const_folding_enabled_ = false;
 
 bool Compiler::scalar_vector_shape_ = true;
 
-bool Compiler::automatic_enc_params_enabled_ = false; // Or set to true if desired
+bool Compiler::automatic_enc_params_enabled_ = true; // Or set to true if desired
 
 
 extern "C"

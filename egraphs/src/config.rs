@@ -8,7 +8,8 @@ pub const GAMMA: f64 = 0.0;
 pub const DELTA: f64 = 1.0;
 pub const STRUCTURED_WITH_ONE_OUTPUT: usize = 21;
 pub const STRUCTURED_WITH_MULTIPLE_OUTPUTS: usize = 11;
-pub const UNSTRUCTURED_WITH_ONE_OUTPUT: usize = 10;
+pub const UNSTRUCTURED_WITH_ONE_OUTPUT: usize = 21;
+// pub const UNSTRUCTURED_WITH_ONE_OUTPUT: usize = 10;
 
 // Compile-time vector width
 use std::env;

@@ -186,7 +186,7 @@ int main(int argc, char **argv) {
         cout << " window is " << window << endl;
         Compiler::gen_vectorized_code(func, window, benchmark_type);  // add a flag to specify if the benchmark is structured or no
         if (SIMPLIFICATION_WITH_EGRAPHS) {
-          Compiler_Simplification::compile(func, header_os, gen_name + ".hpp", source_os, true, 0);
+        //   Compiler_Simplification::compile(func, header_os, gen_name + ".hpp", source_os, true, 0);
         } else {
           // Compiler::gen_he_code(func, header_os, gen_name + ".hpp", source_os);
           auto ruleset = Compiler::Ruleset::ops_cost;

@@ -2,14 +2,9 @@ use egg::*;
 use crate::{
     veclang::{ConstantFold, VecLang},
 };
-use std::collections::HashMap;
 use log::debug;
 
 pub fn generate_rules_unstructured_code(
-    _optimized_rw: bool,
-    _initial_operations: Vec<String>,
-    _rules_info: &mut HashMap<String, Vec<String>>,
-    _initial_rules: &mut Vec<Rewrite<VecLang, ConstantFold>>,
     rules: &mut Vec<Rewrite<VecLang, ConstantFold>>,
 ) {
 
@@ -193,10 +188,6 @@ pub fn generate_rules_unstructured_code(
 
 
 pub fn generate_associativity_and_commutativity_rules(
-    _optimized_rw: bool,
-    _initial_operations: Vec<String>,
-    _rules_info: &mut HashMap<String, Vec<String>>,
-    _initial_rules: &mut Vec<Rewrite<VecLang, ConstantFold>>,
     rules: &mut Vec<Rewrite<VecLang, ConstantFold>>,
 ) {
 

@@ -34,6 +34,15 @@ pub fn get_vector_width(expr: &RecExpr<VecLang>) -> usize {
     // Start with the root node (usually the last node in `RecExpr`)
     vector_width_helper(Id::from(expr.as_ref().len() - 1), expr)
 }
+
+pub fn commutativity_rules() -> Vec<Rewrite<VecLang, ConstantFold>> {
+    let rules : Vec<Rewrite<VecLang, ConstantFold>> = vec![
+        rw!("comm-add"; "(+ ?a0 ?b0)" => "(+ ?b0 ?a0)"),
+        rw!("comm-mul"; "(* ?a0 ?b0)" => "(* ?b0 ?a0)"),
+    ];
+    rules
+}
+
 /****************************************/
 pub fn vector_assoc_min_rules() -> Vec<Rewrite<VecLang, ConstantFold>> {
     let rules: Vec<Rewrite<VecLang, ConstantFold>> = vec![

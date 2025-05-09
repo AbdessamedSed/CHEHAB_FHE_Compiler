@@ -51,8 +51,9 @@ for subfolder_name in polynomial_folders:
     # build_path = build/benchmarks/dot_product 
     ## informations to collect 
     depths = [5, 10]
-    regimes = ["50-50", "100-50", "100-100"]
-    iterations = 1
+    # regimes = ["50-50", "100-50", "100-100"]
+    regimes = ["100-50", "100-100"]
+    iterations = 10
     for regime in regimes :
         for tree_depth in depths : 
             operation_stats = {

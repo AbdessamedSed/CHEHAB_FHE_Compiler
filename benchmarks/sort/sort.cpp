@@ -99,7 +99,7 @@ int main(int argc, char **argv)
         throw logic_error("failed to create source file");
       cout << " window is " << window << endl;
       if (SIMPLIFICATION_WITH_EGRAPHS) {
-          Compiler_Simplification::compile(func, header_os, gen_name + ".hpp", source_os, true, 0);
+          // Compiler_Simplification::compile(func, header_os, gen_name + ".hpp", source_os, true, 0);
       } else {
           // Compiler::gen_he_code(func, header_os, gen_name + ".hpp", source_os);
           auto ruleset = Compiler::Ruleset::ops_cost;
