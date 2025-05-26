@@ -16,9 +16,9 @@ c4 = np.random.randint(0,10,(function_slot_count))
 result = np.zeros((function_slot_count)) 
 for i in range(function_slot_count):
     result[i]=c1[i] + (c0[i] * c0[i] * c4[i] + c0[i] * c3[i] + c2[i])
-is_cipher = 1 
+is_cipher = 1
 is_signed = 0
-## writing matrix to file  
+## writing matrix to file
 if is_vectorization_activated :
     with open("fhe_io_example.txt","w") as file : 
         nb_inputs = function_slot_count * 5 

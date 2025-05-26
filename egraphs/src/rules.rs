@@ -31,7 +31,7 @@ pub fn run(
     let initial_rules : Vec<Rewrite<VecLang, ConstantFold>> = Vec::new(); // idem
     let mut rules : Vec<Rewrite<VecLang, ConstantFold>> = Vec::new();
     if benchmark_type == UNSTRUCTURED_WITH_ONE_OUTPUT {   // One output, not structured
-        debug!("unstructured code with one output");
+        eprintln!("unstructured code with one output");
         rules_1::generate_rules_unstructured_code(
             &mut rules
         );
@@ -41,7 +41,7 @@ pub fn run(
         // );
 
     } else if benchmark_type == STRUCTURED_WITH_ONE_OUTPUT || benchmark_type == STRUCTURED_WITH_MULTIPLE_OUTPUTS {
-        debug!("structured code with one output or multiple outpits");
+        eprintln!("structured code with one output or multiple outpits");
         debug!("vector width is {:?}", vector_width);
         let expression_depth : usize = rules_2::ast_depth(&prog);
         debug!("depth of the expression is : {:?}", expression_depth);
@@ -68,10 +68,6 @@ pub fn run(
                 rules.extend(rules_2::vector_assoc_min_mul_rules());
                 
             },
-            6 => {
-                // eprintln!("rot rules");
-                // rules.extend(rotation_rules(vector_width));
-            }
 
             _ => debug!("Ruleset correspoding to this order doesnt exist"),
         }

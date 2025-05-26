@@ -113,10 +113,10 @@ int main(int argc, char **argv)
     if (SIMPLIFICATION_WITH_EGRAPHS) {
           // Compiler_Simplification::compile(func, header_os, gen_name + ".hpp", source_os, true, 0);
       } else {
-          // Compiler::gen_he_code(func, header_os, gen_name + ".hpp", source_os);
-          auto ruleset = Compiler::Ruleset::ops_cost;
-          auto rewrite_heuristic = trs::RewriteHeuristic::bottom_up;
-          Compiler::compile(func, ruleset, rewrite_heuristic, header_os, gen_name + ".hpp", source_os);
+          Compiler::gen_he_code(func, header_os, gen_name + ".hpp", source_os);
+          // auto ruleset = Compiler::Ruleset::ops_cost;
+          // auto rewrite_heuristic = trs::RewriteHeuristic::bottom_up;
+          // Compiler::compile(func, ruleset, rewrite_heuristic, header_os, gen_name + ".hpp", source_os);
       }
     /************/elapsed = chrono::high_resolution_clock::now() - t;
     

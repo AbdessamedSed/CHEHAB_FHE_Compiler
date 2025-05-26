@@ -5,4 +5,4 @@ int STRUCTURED_WITH_ONE_OUTPUT = 21;
 int STRUCTURED_WITH_MULTIPLE_OUTPUTS = 11;
 int UNSTRUCTURED_WITH_ONE_OUTPUT = 21;
 // int UNSTRUCTURED_WITH_ONE_OUTPUT = 10;
-bool SIMPLIFICATION_WITH_EGRAPHS = true; // this flag to choose if we use the greedy trs for simplification or egraph-based trs
+bool SIMPLIFICATION_WITH_EGRAPHS = false; // this flag to choose if we use the greedy trs for simplification or egraph-based trs
