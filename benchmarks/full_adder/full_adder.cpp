@@ -19,17 +19,27 @@ Ciphertext cond(Ciphertext val ,Ciphertext  ch1,Ciphertext ch2){
 }
 void fhe(int width)
 { 
-  Ciphertext c12("c12"); 
-  Ciphertext c23("c23"); 
-  Ciphertext c13("c13");
-  Ciphertext o123("o123"); 
-  Ciphertext o132("o132"); 
-  Ciphertext o312("o312"); 
-  Ciphertext o213("o213"); 
-  Ciphertext o231("o231");
-  Ciphertext o321("o321");   
+  Ciphertext c000("c000");
+  Ciphertext c001("c001");
+  Ciphertext c010("c010");
+  Ciphertext c100("c100");
+  Ciphertext c011("c011");
+  Ciphertext c101("c101");
+  Ciphertext c110("c110");
+  Ciphertext c111("c111");
+  Ciphertext s00("s00");
+  Ciphertext s01("s01");
+  Ciphertext s10("s10");
+  Ciphertext s11("s11");  
   Ciphertext output ;
-  output = cond(c12, (cond(c23,o123,cond(c13, o132, o312))), (cond(c13,o213,cond(c23, o231, o321))) );
+  output = cond(c000, s00,
+                cond(c001, s10,
+                cond(c010, s10,
+                cond(c100, s10,
+                cond(c011, s01,
+                cond(c101, s01, 
+                cond(c110, s01, s11)
+                ))))));
   output.set_output("output");
 }
 /******************************************************************************************/

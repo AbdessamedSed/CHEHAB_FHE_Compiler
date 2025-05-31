@@ -1,1 +1,2 @@
 benchmark,add,sub,multiply_plain,rotate_rows,square,multiply,Depth,Multplicative Depth,compile_time( ms ),execution_time (ms)
+dot_product_4,2,0,0,2,0,1,5,1,251.902,319.525

@@ -19,6 +19,16 @@ void fhe_vectorized(int slot_count){
 /***************************/
 void fhe(int slot_count)
 {
+
+  // Ciphertext c1 = Ciphertext("c_1");
+  // Ciphertext c2 = Ciphertext("c_2");
+  // Ciphertext c3 = Ciphertext("c_3");
+  // Ciphertext c4 = Ciphertext("c_4");
+  // Ciphertext c5 = Ciphertext("c_5");
+
+  // c4 = c1 + c2;
+  // c5 = c4 * c3;
+  // c5.set_output("result");
   size_t size = slot_count;
   std::vector<Ciphertext> v1(size);
   std::vector<Ciphertext> v2(size);
@@ -37,7 +47,7 @@ void fhe(int slot_count)
       output += (v2[i] - v1[i]) * (v2[i] - v1[i]);
     }
   }
-    // output = ((Ciphertext("c_1") * Ciphertext("c_2")) + (Ciphertext("c_3") * Ciphertext("c_4"))) * ((((Ciphertext("c_5") * Ciphertext("c_6")) + (Ciphertext("c_7") + Ciphertext("c_8")) * (Ciphertext("c_9") + Ciphertext("c_10"))) * (Ciphertext("c_11") * Ciphertext("c_12"))));
+    output = ((Ciphertext("c_1") * Ciphertext("c_2")) + (Ciphertext("c_3") * Ciphertext("c_4"))) * ((((Ciphertext("c_5") * Ciphertext("c_6")) + (Ciphertext("c_7") + Ciphertext("c_8")) * (Ciphertext("c_9") + Ciphertext("c_10"))) * (Ciphertext("c_11") * Ciphertext("c_12"))));
   output.set_output("result");
 }
 

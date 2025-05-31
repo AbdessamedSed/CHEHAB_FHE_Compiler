@@ -19,17 +19,19 @@ Ciphertext cond(Ciphertext val ,Ciphertext  ch1,Ciphertext ch2){
 }
 void fhe(int width)
 { 
-  Ciphertext c12("c12"); 
-  Ciphertext c23("c23"); 
+  Ciphertext a ("a");
+  Ciphertext b ("b");
+  Ciphertext c("c");
+  Ciphertext c12("c12");
   Ciphertext c13("c13");
-  Ciphertext o123("o123"); 
-  Ciphertext o132("o132"); 
-  Ciphertext o312("o312"); 
-  Ciphertext o213("o213"); 
-  Ciphertext o231("o231");
-  Ciphertext o321("o321");   
-  Ciphertext output ;
-  output = cond(c12, (cond(c23,o123,cond(c13, o132, o312))), (cond(c13,o213,cond(c23, o231, o321))) );
+  Ciphertext c23("c23");
+  Ciphertext output;
+
+  output = cond(c12,
+                          cond(c23, b, cond(c13, c, a)),
+                          cond(c13, a, cond(c23, c, b))
+  );
+
   output.set_output("output");
 }
 /******************************************************************************************/
