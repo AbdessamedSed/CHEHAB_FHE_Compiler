@@ -40,7 +40,7 @@ where
             let mut oredered_eclasses = Vec::new();
             if sorting {
                 let start_sorting = Instant::now();
-                oredered_eclasses = Self::semi_topological_sort(egraph, root);
+                oredered_eclasses = Self::quasi_topological_sort(egraph, root);
                 let end_sorting = start_sorting.elapsed();
 
                 debug!("time to sort is : {:?}", end_sorting);
@@ -84,7 +84,7 @@ where
         (expr.add(node), best_cost)
     }
 
-    pub fn semi_topological_sort(egraph: &'a EGraph<L, N>, root: Id) -> Vec<(Id, usize)> {
+    pub fn quasi_topological_sort(egraph: &'a EGraph<L, N>, root: Id) -> Vec<(Id, usize)> {
 
         let mut order_map: HashMap<Id, usize> = HashMap::new();  // Store the order of each e-class
         let mut stack: Vec<(Id, usize)> = vec![(root, 0)];  // Stack to simulate DFS traversal (ID, current order)
@@ -444,50 +444,5 @@ where
         }
     }
 
-    // fn find_enode_descendents(
-    //     egraph: &'a EGraph<L, N>,
-    // ) -> HashMap<(L, Id), HashSet<Id>>
-    // {
-    //     let mut enode_descendents: HashMap<(L, Id), HashSet<Id>> = HashMap::new();
-    //     let mut visited: HashSet<Id> = HashSet::new();
-
-    //     for class in egraph.classes() {
-    //         for node in &class.nodes {
-    //             let mut result_desc = HashSet::<Id>::new();
-                
-    //             for child in node.children() {
-    //                 Self::get_enode_descendents(egraph, *child, &mut result_desc, &mut visited);
-    //                 result_desc.insert(*child);
-    //             }
-
-    //             enode_descendents.insert((node.clone(), class.id), result_desc);
-    //         }
-    //     }
-
-    //     enode_descendents
-
-    // }
-
-    // fn get_enode_descendents (
-    //     egraph: &'a EGraph<L, N>,
-    //     eclass_id: Id,
-    //     result_desc: &mut HashSet<Id>,
-    //     visited: &mut HashSet<Id>
-    // ) {
-    //     if visited.contains(&eclass_id) {
-    //         return;
-    //     }
-
-    //     visited.insert(eclass_id);
-
-    //     if let Some(class) = egraph.classes().find(|class| class.id == eclass_id) {
-    //         for node in &class.nodes {
-    //             for child in node.children() {
-    //                 Self::get_enode_descendents(egraph, *child, result_desc, visited);
-    //                 result_desc.insert(*child);
-    //             }
-    //         }
-    //     }
-    //     visited.remove(&eclass_id);
-    // }
+   
 }

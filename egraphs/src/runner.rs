@@ -275,7 +275,7 @@ where
     ) -> Iteration<IterData> {
         assert!(self.stop_reason.is_none());
 
-        eprintln!("hello from run_one optimized");
+        debug!("hello from run_one optimized");
 
         info!("\nIteration {}", self.iterations.len());
         
@@ -445,7 +445,7 @@ where
         }
 
         // for rw in initial_rules.iter() {
-        //     eprintln!("initial rule is : {:?}", rw.name.as_str());
+        //     debug!("initial rule is : {:?}", rw.name.as_str());
         // }
         let filtered_clone;
         let cloned_rules = if i == 0 {
@@ -460,9 +460,9 @@ where
 
         // for rw in iterator_rules_for_applying_matches.iter() {
             
-        //     eprintln!("iterator_rules_for_applying_matches : {:?}", rw.name.as_str());
+        //     debug!("iterator_rules_for_applying_matches : {:?}", rw.name.as_str());
         // }
-        // eprintln!("end iterator_rules_for_applying_matches");
+        // debug!("end iterator_rules_for_applying_matches");
 
         let search_time = start_search_time.elapsed().as_secs_f64();
         // debug!("time for searching the rewrte rule {:?} is {:?}", rw.name, search_time);
@@ -490,25 +490,25 @@ where
                     } else {
                         applied.insert(rw.name.to_owned(), actually_matched);
                     }
-                    eprintln!("Applied {} {} times", rw.name, actually_matched);
+                    debug!("Applied {} {} times", rw.name, actually_matched);
                 }
 
                 let _end = start.elapsed();
-                // eprintln!("time for applying the rewrte rule {:?} is {:?}", rw.name, end);
+                // debug!("time for applying the rewrte rule {:?} is {:?}", rw.name, end);
 
                 self.check_limits()
             })
         });
 
         let apply_time = apply_time.elapsed().as_secs_f64();
-        // eprintln!("Total Apply time: {}", apply_time);
+        // debug!("Total Apply time: {}", apply_time);
 
         let rebuild_time = Instant::now();
         let n_rebuilds = self.egraph.rebuild();
         
 
         let rebuild_time = rebuild_time.elapsed().as_secs_f64();
-        // eprintln!("Rebuild time: {}", rebuild_time);
+        // debug!("Rebuild time: {}", rebuild_time);
         info!(
             "Size: n={}, e={}",
             self.egraph.total_size(),
@@ -588,7 +588,7 @@ where
     
                     let _end = start.elapsed();
     
-                    // eprintln!("time for searching the rewrte rule {:?} is {:?}", rw.name, end);
+                    // debug!("time for searching the rewrte rule {:?} is {:?}", rw.name, end);
     
                     self.check_limits()
                 })
@@ -624,21 +624,21 @@ where
                 }
 
                 let _end = start.elapsed();
-                // eprintln!("time for applying the rewrte rule {:?} is {:?}", rw.name, end);
+                // debug!("time for applying the rewrte rule {:?} is {:?}", rw.name, end);
 
                 self.check_limits()
             })
         });
 
         let apply_time = apply_time.elapsed().as_secs_f64();
-        // eprintln!("Total Apply time: {}", apply_time);
+        // debug!("Total Apply time: {}", apply_time);
 
         let rebuild_time = Instant::now();
         let n_rebuilds = self.egraph.rebuild();
         
 
         let rebuild_time = rebuild_time.elapsed().as_secs_f64();
-        // eprintln!("Rebuild time: {}", rebuild_time);
+        // debug!("Rebuild time: {}", rebuild_time);
         info!(
             "Size: n={}, e={}",
             self.egraph.total_size(),
@@ -701,11 +701,11 @@ fn check_rules<L, N>(rules: &[&Rewrite<L, N>]) {
 
     name_counts.retain(|_, count: &mut usize| *count > 1);
     if !name_counts.is_empty() {
-        eprintln!("WARNING: Duplicated rule names may affect rule reporting and scheduling.");
+        debug!("WARNING: Duplicated rule names may affect rule reporting and scheduling.");
         log::warn!("Duplicated rule names may affect rule reporting and scheduling.");
         for (name, &count) in name_counts.iter() {
             assert!(count > 1);
-            eprintln!("Rule '{}' appears {} times", name, count);
+            debug!("Rule '{}' appears {} times", name, count);
             log::warn!("Rule '{}' appears {} times", name, count);
         }
     }
@@ -756,7 +756,7 @@ where
         matches: Vec<SearchMatches<L>>,
     ) -> usize {
         let results = rewrite.apply(egraph, &matches);
-        // eprintln!("result applying : {:?}", results);
+        // debug!("result applying : {:?}", results);
         results.len()
     }
 }   
@@ -887,7 +887,7 @@ where
         // Search for matches with the adjusted limit
         let matches = rewrite.search_with_limit(egraph, limit);
         let total_len: usize = matches.iter().map(|m| m.substs.len()).sum();
-        // eprintln!("name of rw is : {:?}", rewrite.name.as_str());
+        // debug!("name of rw is : {:?}", rewrite.name.as_str());
         matches.iter().for_each(|rw| {
             debug!("new matche : {:?} for eclass: {:}", rw.substs, rw.eclass);
         });

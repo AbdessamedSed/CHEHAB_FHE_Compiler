@@ -15,30 +15,7 @@ where
         let extractor = ExhaustiveExtractor { egraph };
         extractor
     }
-    // The find_best function tests all possible combinations of e-nodes within an e-graph,
-    // aiming to find the overall optimal expression based on the total cost, rather than selecting the
-    // best node locally within each e-class. This approach helps in avoiding suboptimal expressions that
-    // might arise from local optimization. The function considers the following parameters:
-    //
-    // - self: A mutable reference to the extractor object, which contains the egraph in question.
-    // - eclass_ids: A vector storing the e-classes to traverse, based on the previously selected e-nodes.
-    // - dependency_map: A HashMap that tracks dependencies among e-classes, helping in cycle detection.
-    //   A cycle (when an e-class has itself as a dependency) would result in an invalid combination.
-    // - root_id: The ID of the e-class that represents the entire expression.
-    // - current_index: The index of the current e-class being processed in the eclass_ids vector.
-    // - current_cost: The cost accumulated so far from the already chosen nodes.
-    // - current_nodes: A vector storing the nodes that are currently considered the best nodes.
-    // - best_cost: A mutable reference to store the cost of the best expression found so far.
-    // - best_expr: A mutable reference to store the best expression found so far.
-    //
-    // The function starts by retrieving the current e-class using the provided index. It then iterates
-    // over the nodes of this e-class. For each node, the function clones the current state, calculates
-    // the cost of the operation, updates dependencies, and recursively explores further combinations
-    // unless a cycle is detected or a scalar operation is encountered (which is skipped for vectorization).
-    // Once the last e-class is processed, the function compares the current expression's cost with the
-    // best cost found so far. If the current expression is cheaper, it updates the best cost and the
-    // best expression. The nodes in the best expression are stored in a bottom-up manner, requiring
-    // special handling to adjust the IDs of the children.
+   
     pub fn find_best(
         &mut self,
         eclass_ids: Vec<Id>,

@@ -1736,22 +1736,24 @@ void Compiler::format_vectorized_code(const std::shared_ptr<ir::Func> &func, int
     std::string expression;
     if (vec_file.is_open()) {
         while (std::getline(vec_file, expression)) {
+          std::cout << "Read expression: " << expression << std::endl;
             expressions.push_back(expression);
         }
         vec_file.close();
     }
     /*********************************************************************/
-     if (benchmark_type != UNSTRUCTURED_WITH_ONE_OUTPUT) {
-      /* if there are various outputs (vector as output), we need to get the sizes of the slot
-      and the sub_vector before starting the expressions processing, else, (there is only one output)
-      we extract expressions from egraph and we find the sizes using the function processExpression,
-      and we generate rotations to use only one output
-      */
-      slot_count = std::stoi(expressions.back().substr(0, expressions.back().find(' ')));
-      sub_vector_size = std::stoi(expressions.back().substr(expressions.back().find(' ') + 1));
-      // std::cout<<"slot_count : " <<slot_count<<" \n";
-      // std::cout<<"sub_vector_size : " <<sub_vector_size<<" \n";
-    }
+    //  if (benchmark_type != UNSTRUCTURED_WITH_ONE_OUTPUT) {
+    //   /* if there are various outputs (vector as output), we need to get the sizes of the slot
+    //   and the sub_vector before starting the expressions processing, else, (there is only one output)
+    //   we extract expressions from egraph and we find the sizes using the function processExpression,
+    //   and we generate rotations to use only one output
+    //   */
+    //  std::cout << "Processing expressions for benchmark type: unstructured " << std::endl;
+    //   slot_count = std::stoi(expressions.back().substr(0, expressions.back().find(' ')));
+    //   sub_vector_size = std::stoi(expressions.back().substr(expressions.back().find(' ') + 1));
+    //   // std::cout<<"slot_count : " <<slot_count<<" \n";
+    //   // std::cout<<"sub_vector_size : " <<sub_vector_size<<" \n";
+    // }
     /*********************************************************************/
     std::vector<std::string> outputs;
     vector<string> simplified_expressions= {};
@@ -1773,9 +1775,9 @@ void Compiler::format_vectorized_code(const std::shared_ptr<ir::Func> &func, int
           sub_vector_size = maxSize;
           expr = wrapStandaloneConstants(expr, maxSize);
         }
+        std::cout << "Processing expression: " << expr << std::endl;
         auto tokens = process_vectorized_code(expr);
         std::unordered_map<std::string, std::string> dictionary = {};
-        // std::cout << "expression before calling expr is : " << expr << std::endl;
         process(tokens,0,dictionary,inputs_entries,inputs,inputs_types, slot_count, sub_vector_size,simplified_expression, rotation_flag, expression_to_rotate);
         // Convert new operands VecAddRot, VecMulRot, VecMinusRot
         if (benchmark_type == STRUCTURED_WITH_ONE_OUTPUT || benchmark_type == STRUCTURED_WITH_MULTIPLE_OUTPUTS) {
