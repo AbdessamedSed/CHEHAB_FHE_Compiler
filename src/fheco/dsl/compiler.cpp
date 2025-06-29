@@ -454,7 +454,7 @@ void Compiler::gen_vectorized_code(const std::shared_ptr<ir::Func> &func, int be
   vectorized_code_file.close();
   /*********************************************************/
   // Call the vectorizer function with the computed vector width
-  std::cout<<"Call the code vectorizer \n";
+  // std::cout<<"Call the code vectorizer \n";
   call_vectorizer(vector_width, benchmark_type);
   /***********************************************************/
   // Call the script to build the source code that operates on vectors
@@ -554,7 +554,7 @@ void Compiler::gen_vectorized_code(const std::shared_ptr<ir::Func> &func, int wi
     // Process output terms
     std::vector<const ir::Term *> output_terms = process_output_terms(func->data_flow().outputs_info(),func->data_flow().output_keys());
     if(vector_full_width<window){
-      std::cout<<"\nresult vector width smaller than window size ==> windows will be considered=0(deactivated)\n";
+      // std::cout<<"\nresult vector width smaller than window size ==> windows will be considered=0(deactivated)\n";
       gen_vectorized_code(func, benchmark_type);
       return;
     }
@@ -1191,9 +1191,9 @@ std::pair<std::string, int> process(
           }   
         } 
         else if (tokens[index].rfind("c_", 0) == 0 || tokens[index].rfind("p_", 0) == 0) {
-              std::cout << "ciphertext/plaintext found : " << tokens[index] << std::endl;
+              // std::cout << "ciphertext/plaintext found : " << tokens[index] << std::endl;
               index++;
-              std::cout << "ciphertext/plaintext found : " << tokens[index] << std::endl;
+              // std::cout << "ciphertext/plaintext found : " << tokens[index] << std::endl;
             }
     }
     return {"", index};
@@ -1736,7 +1736,7 @@ void Compiler::format_vectorized_code(const std::shared_ptr<ir::Func> &func, int
     std::string expression;
     if (vec_file.is_open()) {
         while (std::getline(vec_file, expression)) {
-          std::cout << "Read expression: " << expression << std::endl;
+          // std::cout << "Read expression: " << expression << std::endl;
             expressions.push_back(expression);
         }
         vec_file.close();
@@ -1775,7 +1775,7 @@ void Compiler::format_vectorized_code(const std::shared_ptr<ir::Func> &func, int
           sub_vector_size = maxSize;
           expr = wrapStandaloneConstants(expr, maxSize);
         }
-        std::cout << "Processing expression: " << expr << std::endl;
+        // std::cout << "Processing expression: " << expr << std::endl;
         auto tokens = process_vectorized_code(expr);
         std::unordered_map<std::string, std::string> dictionary = {};
         process(tokens,0,dictionary,inputs_entries,inputs,inputs_types, slot_count, sub_vector_size,simplified_expression, rotation_flag, expression_to_rotate);

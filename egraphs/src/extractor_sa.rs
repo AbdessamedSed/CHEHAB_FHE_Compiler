@@ -32,11 +32,15 @@ where
     
         // Calculate cost based on operator type
         match op {
-            "+" | "*" | "-" | "neg" => OP * 10000.0,
+            "+" | "*" | "-" | "neg" => OP * 10_000.0,
             "<<" => VEC_OP * 50.0,
             "Vec" => STRUCTURE,
-            "VecAdd" | "VecMinus" => VEC_OP,
+            "VecAdd" | "VecMinus" | "VecNeg" => VEC_OP,
             "VecMul" => VEC_OP * 100.0,
+            "VecAddRotF" | "VecMinusRotF" | "VecAddRotS" | "VecMinusRotS"=> VEC_OP * 1051.0,
+            "VecMulRotF" | "VecMulRotS" => VEC_OP * 2150.0,
+            "VecAddRotP" | "VecMinusRotP" => VEC_OP * 5_000.0,
+            "VecMulRotP" => VEC_OP * 7_000.0,
             _ => LITERAL,
         }
     }    
@@ -232,7 +236,7 @@ where
         best_expr = current_expr.clone();
 
         // Step2: Iterate to generate neighnor expressions
-        for _ in 0..max_iteration {
+        for k in 0..max_iteration {
             let mut neighbor_expr = current_expr.clone();
             let mut neighbor_cost = current_cost.clone();
             let mut changed = false;
@@ -249,20 +253,28 @@ where
         );
             selected_enodes = currently_selected_enodes;
             currently_selected_enodes = HashSet::new();
-            // eprintln!("Iteration {}: Extracted Expression: {:?}", i, current_expr);
+            if k < 5 {
+                eprintln!(" == > Iteration {}", k);
+            }
 
             if neighbor_cost < current_cost ||  rng.gen::<f64>() < ((current_cost as f64 - new_cost as f64) / temperature).exp() {
                 current_cost = neighbor_cost;
 
-                // eprintln!("modified current: {:?}", current_cost);
+                if k == 2 || k == 5 {
+                    eprintln!("modified best")
+                }
+
                 if current_cost < best_cost {
-                    // eprintln!("modified best:");
+                    eprintln!("modified best");
                     best_expr = current_expr.clone();
                     best_cost = current_cost;
                 }
             }
             
             temperature *= cooling_rate;
+            if k < 5 {
+                eprintln!("current temperature is : {:?}", temperature);
+            }
         }
         
 

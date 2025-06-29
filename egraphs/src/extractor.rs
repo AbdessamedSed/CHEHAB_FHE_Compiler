@@ -331,7 +331,7 @@ where
 
             // Measure the time for the current iteration
             let duration = start_time.elapsed();
-            debug!("Iteration {} took {:?}", i, duration);
+            eprintln!("Iteration {} took {:?}", i, duration);
             debug!("did_something is {:?}", did_something);
             debug!("total_time to update is {:?} for iteration {:}", time_to_pdate.as_secs_f64(), i);
         }

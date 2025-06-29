@@ -6,7 +6,6 @@ use crate::{
     extractor_exhaustive::ExhaustiveExtractor,     veclang::{ConstantFold, Egraph, VecLang},
     runner::Runner,
     cost::VecCostFn,
-    // lp_extract:: {LpExtractor, LpCostFunction}
 };
 use std::collections::HashMap;
 use std::collections::HashSet;
@@ -28,9 +27,9 @@ pub fn run(
     let mut initial_operations = Vec::new();
     eprintln!("starting vectorization ...");
     eprintln!("vector width is {:?}", vector_width);
-    eprintln!("rule_filtering is {:?}", rule_filtering);
-    eprintln!("sorting is {:?}", sorting);
-    eprintln!("exp_rules is {:?}", exp_rules);
+    debug!("rule_filtering is {:?}", rule_filtering);
+    debug!("sorting is {:?}", sorting);
+    debug!("exp_rules is {:?}", exp_rules);
 
     debug!("the begining expre is : {:?}", prog);
 
@@ -76,7 +75,7 @@ pub fn run(
     );
 
      for rw in initial_rules.iter() {
-        eprintln!("initial rules are: {:?}", rw.name.as_str());
+        debug!(" ==> Initial rules contains: {:?}", rw.name.as_str());
 
     }
 
@@ -88,6 +87,8 @@ pub fn run(
     // Initialize the e-graph with constant folding enabled and add a zero literal
     let mut init_eg = Egraph::new(ConstantFold);
     init_eg.add(VecLang::Num(0));
+
+    eprintln!("\n ==> Starting egraph building ...");
 
     type MyRunner = Runner<VecLang, ConstantFold>;
 
@@ -104,7 +105,7 @@ pub fn run(
             // it is set to false in this case
 
         let report = runner.report();
-        eprintln!("report : {:?}", report);
+        debug!("\n\n{:?}", report);
         /* for the rules , if the rule is expensive we add the prefix exp to its name */
 
 
@@ -113,7 +114,7 @@ pub fn run(
     debug!("E-graph built in {:?}", build_time);
 
     // Print the reason for stopping to STDERR
-    eprintln!(
+    debug!(
         "Stopped after {} iterations, reason: {:?}",
         runner.iterations.len(),
         runner.stop_reason
@@ -126,10 +127,10 @@ pub fn run(
     debug!("final number of enodes : {:?}", eg.total_size());
     // print_egraph(eg.clone());
 
-    let extraction_technic = 0;
+    let extraction_technic = 2;
     let mut best_cost: f64 = 0.0;
     let mut best_expr : RecExpr<VecLang> = RecExpr::default();
-    debug!("begining of extraction 0 .... ");
+    eprintln!("\n\n ==> Begining of extraction .... ");
 
     /* we have 3 ways fot the extraction:
         1) greedy_extraction: takes decisions locally
@@ -176,7 +177,8 @@ pub fn run(
             initial_temp,
             cooling_rate,
         );
-        let _extract_time = start_extract_time.elapsed();
+        let extract_time = start_extract_time.elapsed();
+        eprintln!("Extraction done in {:?} s", extract_time);
         //Stop timing after the extraction is complete
         eprintln!("display final results");
         /********************************************************************************/
@@ -740,22 +742,12 @@ pub fn generate_rules(
 
     /************************************* creating rule set **********************************/
     if exp_rules {
-        let rotation_rules = rotation_rules(vector_width);
-        let split_vectors = split_vectors(vector_width, initial_operations.clone());
-        rules.extend(rotation_rules);
-        rules.extend(split_vectors);
+        let _rotation_rules = rotation_rules(vector_width);
+        // let split_vectors = split_vectors(vector_width, initial_operations.clone());
+        // rules.extend(rotation_rules);
+        // rules.extend(split_vectors);
     }
 
 }
 
-
-fn are_all_symbols_or_nums(vars: Vec<String>) -> impl Fn(&mut EGraph<VecLang, ConstantFold>, Id, &Subst) -> bool {
-    move |egraph: &mut EGraph<VecLang, ConstantFold>, _, subst| {
-        vars.iter().all(|var| {
-            let converted_var = var.as_str();
-            let nodes = &egraph[subst[converted_var.parse().unwrap()]].nodes;
-            nodes.iter().all(|n| matches!(n, VecLang::Symbol(_) | VecLang::Num(_)))
-        })
-    }
-}
 

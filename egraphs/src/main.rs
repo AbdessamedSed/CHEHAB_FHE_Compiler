@@ -2,11 +2,6 @@ extern crate clap;
 use clap::{App, Arg};
 use egraphslib::*;
 use std::time::Instant;
-use crate::rules_2;
-use log::debug;
-use egg::*;
-use crate::veclang::VecLang;
-use crate::config::*;
 
 fn main() {
     let matches = App::new("Rewriter")
@@ -32,9 +27,16 @@ fn main() {
 
     use std::{env, fs};
 
+
+
     let rule_filtering = false;
-    let sorting = false;
     let exp_rules = true;
+
+
+
+    let sorting = false;
+
+
 
     // Get a path string to parse a program.
     let path = matches.value_of("INPUT").unwrap();
@@ -44,7 +46,7 @@ fn main() {
         .unwrap_or(300);
     let prog_str = fs::read_to_string(path).expect("Failed to read the input file.");
     eprintln!("the input expression is : {:?}", prog_str);
-    let mut prog_str = prog_str.trim().to_string(); // Trim any leading/trailing whitespace
+    let prog_str = prog_str.trim().to_string(); 
 
 
     // Print the cleaned-up expression
@@ -60,10 +62,10 @@ fn main() {
 
     // Run rewriter
     eprintln!(
-        "Running egg with timeout {:?}s, width: {:?}, rule_filtering: {:?}, sorting: {:?}, exp-rules: {:?}",
-        timeout, vector_width, rule_filtering, sorting, exp_rules
+        "Running egg with timeout {:?}s, width: {:?}",
+        timeout, vector_width
     );
-    let (cost, best) = rules::run(&prog, timeout, vector_width, rule_filtering, sorting, exp_rules);
+    let (_cost, best) = rules::run(&prog, timeout, vector_width, rule_filtering, sorting, exp_rules);
 
     // Record the end time
     let duration = start_time.elapsed();
@@ -72,6 +74,6 @@ fn main() {
 
     println!("{}", best.to_string()); /* Pretty print with width 80 */
     println!("{} {}", vector_width, vector_width);
-    eprintln!("\nCost: {}", cost);
+    //eprintln!("\nCost: {}", cost);
     eprintln!("Time taken: {:?} to finish", duration);
 }

@@ -94,7 +94,7 @@ int main(int argc, char **argv)
   /**************/t = chrono::high_resolution_clock::now();
   if (vectorized)
   {
-      int benchmark_type = STRUCTURED_WITH_MULTIPLE_OUTPUTS;
+      int benchmark_type = STRUCTURED_WITH_ONE_OUTPUT;
       const auto &func = Compiler::create_func(func_name, 1, 20, false, true);
       fhe(slot_count);
       string gen_name = "_gen_he_" + func_name;
