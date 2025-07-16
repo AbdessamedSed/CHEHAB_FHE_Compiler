@@ -47,8 +47,8 @@ void fhe(int slot_count)
       output += (v2[i] - v1[i]) * (v2[i] - v1[i]);
     }
   }
-    output = ((Ciphertext("c_1") * Ciphertext("c_2")) + (Ciphertext("c_3") * Ciphertext("c_4"))) * ((((Ciphertext("c_5") * Ciphertext("c_6")) + (Ciphertext("c_7") + Ciphertext("c_8")) * (Ciphertext("c_9") + Ciphertext("c_10"))) * (Ciphertext("c_11") * Ciphertext("c_12"))));
-  output.set_output("result");
+  output.set_output("output");
+
 }
 
 
@@ -105,7 +105,7 @@ int main(int argc, char **argv)
   /**************/t = chrono::high_resolution_clock::now();
   if (vectorized)
   { 
-      int benchmark_type = STRUCTURED_WITH_ONE_OUTPUT;
+      int benchmark_type = UNSTRUCTURED_WITH_ONE_OUTPUT;
       const auto &func = Compiler::create_func(func_name, 1, 20, true, true);
       fhe(slot_count);
       string gen_name = "_gen_he_" + func_name;
@@ -123,9 +123,9 @@ int main(int argc, char **argv)
           Compiler_Simplification::compile(func, header_os, gen_name + ".hpp", source_os, true, 0);
       } else {
           Compiler::gen_he_code(func, header_os, gen_name + ".hpp", source_os);
-          // auto ruleset = Compiler::Ruleset::ops_cost;
-          // auto rewrite_heuristic = trs::RewriteHeuristic::bottom_up;
-          // Compiler::compile(func, ruleset, rewrite_heuristic, header_os, gen_name + ".hpp", source_os);
+          auto ruleset = Compiler::Ruleset::ops_cost;
+          auto rewrite_heuristic = trs::RewriteHeuristic::bottom_up;
+          Compiler::compile(func, ruleset, rewrite_heuristic, header_os, gen_name + ".hpp", source_os);
       }      /************/elapsed = chrono::high_resolution_clock::now() - t;   
       cout << elapsed.count() << " ms\n";
       if (call_quantifier)

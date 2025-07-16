@@ -17,20 +17,26 @@ void fhe_vectorized(int width){
 Ciphertext cond(Ciphertext val ,Ciphertext  ch1,Ciphertext ch2){
     return val*ch1 + (1-val)*ch2;
 }
+
+Ciphertext cond_and(Ciphertext val1, Ciphertext val2, Ciphertext ch1, Ciphertext ch2, Ciphertext ch3) {
+  return (val1 * val2) * ch1 + (1 - val1) * ch2 + (1 - val2) * ch2;
+}
+
 void fhe(int width)
 { 
   Ciphertext a ("a");
   Ciphertext b ("b");
   Ciphertext c("c");
-  Ciphertext c12("c12");
-  Ciphertext c13("c13");
-  Ciphertext c23("c23");
+  Ciphertext d("d");
+  Ciphertext c12("c12");  // a > b
+  Ciphertext c13("c13");  // a > c
+  Ciphertext c14("C14");  // a > d
+  Ciphertext c23("c23");  // b > c
+  Ciphertext c24("c24");  // b > d
+  Ciphertext c34("c34");  // c > d
   Ciphertext output;
 
-  output = cond(c12,
-                          cond(c23, b, cond(c13, c, a)),
-                          cond(c13, a, cond(c23, c, b))
-  );
+  output = 
 
   output.set_output("output");
 }

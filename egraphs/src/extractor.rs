@@ -232,7 +232,7 @@ where
     
                 let shared_op_costs: f64 = match op.as_str() {
                     "+" | "*" | "-" | "neg" => OP * 10_000.0,
-                    "<<" => VEC_OP * 50.0,
+                    "Rot" => VEC_OP * 50.0,
                     "Vec" => STRUCTURE,
                     "VecAdd" | "VecMinus" | "VecNeg" => VEC_OP,
                     "VecMul" => VEC_OP * 100.0,

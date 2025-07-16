@@ -33,7 +33,7 @@ where
         // Calculate cost based on operator type
         match op {
             "+" | "*" | "-" | "neg" => OP * 10000.0,
-            "<<" => VEC_OP * 50.0,
+            "Rot" => VEC_OP * 50.0,
             "Vec" => STRUCTURE,
             "VecAdd" | "VecMinus" => VEC_OP,
             "VecMul" => VEC_OP * 100.0,

@@ -590,6 +590,7 @@ pub fn vector_assoc_add_min_rules() -> Vec<Rewrite<VecLang, ConstantFold>> {
 }
 /****************************************************/
 pub fn vector_assoc_min_mul_rules() -> Vec<Rewrite<VecLang, ConstantFold>> {
+    eprintln!("hello rules");
     let rules: Vec<Rewrite<VecLang, ConstantFold>> = vec![
         rewrite!("assoc-balan-min-mul-1"; 
         "(VecMinus (VecMinus (VecMinus (VecMul ?c1 ?c2) (VecMul ?d1 ?d2)) (VecMul ?b1 ?b2)) (VecMul ?a1 ?a2))" => 

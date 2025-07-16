@@ -1763,9 +1763,10 @@ void Compiler::format_vectorized_code(const std::shared_ptr<ir::Func> &func, int
     for (auto& expr : expressions) {
         if (&expr == &expressions.back()) break;
          /*************************************/
+        // std::cout << "there 1" << expr << endl;
         if (benchmark_type == UNSTRUCTURED_WITH_ONE_OUTPUT) { // the size of the outpt is 1 , like l2_distance
            /* in reality, in this part there is no widnow optimiezation , we get the vector size returned by the egraph
-            after the vectorization process , sub_vector_size is not necessary , but we will add it to avoid re-implement
+            after the vectorization process , sub_vector_size is not necessary , but we will add it to avoid re-implementing
             new function for expression processing
             */
           processExpression(expr, vectorSizes, maxSize);
@@ -1773,11 +1774,14 @@ void Compiler::format_vectorized_code(const std::shared_ptr<ir::Func> &func, int
           sub_vector_size = maxSize;
           expr = wrapStandaloneConstants(expr, maxSize);
         }
+        std::cout << "there 2" << expr << endl;
         auto tokens = process_vectorized_code(expr);
         std::unordered_map<std::string, std::string> dictionary = {};
-        // std::cout << "expression before calling expr is : " << expr << std::endl;
+        std::cout << "expression before calling process is : " << expr << std::endl;
         process(tokens,0,dictionary,inputs_entries,inputs,inputs_types, slot_count, sub_vector_size,simplified_expression, rotation_flag, expression_to_rotate);
         // Convert new operands VecAddRot, VecMulRot, VecMinusRot
+        std::cout << "expression after calling process is : " << simplified_expression << std::endl;
+
         if (benchmark_type == STRUCTURED_WITH_ONE_OUTPUT || benchmark_type == STRUCTURED_WITH_MULTIPLE_OUTPUTS) {
           auto tokens1 = split(simplified_expression.substr(1));
           string updated_expr = convert_new_ops(tokens1);

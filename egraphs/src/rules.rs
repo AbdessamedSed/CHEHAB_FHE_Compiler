@@ -10,6 +10,7 @@ use crate::{
 };
 use crate::rules_1;
 use crate::rules_2;
+use crate::rules_3;
 use std::collections::HashMap;
 use std::collections::HashSet;
 use log::debug;
@@ -30,31 +31,65 @@ pub fn run(
     let rules_info : HashMap<String, Vec<String>> = HashMap::new(); // this is for optimization techinque, it is not used at this level
     let initial_rules : Vec<Rewrite<VecLang, ConstantFold>> = Vec::new(); // idem
     let mut rules : Vec<Rewrite<VecLang, ConstantFold>> = Vec::new();
+
+    
+
     if benchmark_type == UNSTRUCTURED_WITH_ONE_OUTPUT {   // One output, not structured
         eprintln!("unstructured code with one output");
-        rules_1::generate_rules_unstructured_code(
-            &mut rules
-        );
+        // rules_1::generate_rules_unstructured_code(
+        //     &mut rules
+        // );
     
         // rules_1::generate_associativity_and_commutativity_rules(
         //     &mut rules
         // );
 
+        rules.extend(
+            rules_3::generate_rot_distrib_rules_for_op(
+                '*',
+                "VecMul",
+                "VecMulRotF",
+                "mul",
+                10,
+            )
+        );
+
+        rules.extend(
+            rules_3::generate_rot_distrib_rules_for_op(
+                '+',
+                "VecAdd",
+                "VecAddRotF",
+                "add",
+                10,
+            )
+        );
+
+        rules.extend(
+            rules_3::generate_rot_distrib_rules_for_op(
+                '-',
+                "VecMinus",
+                "VecMinusRotF",
+                "sub",
+                10,
+            )
+        );
+        eprintln!("after generating rules");
+
     } else if benchmark_type == STRUCTURED_WITH_ONE_OUTPUT || benchmark_type == STRUCTURED_WITH_MULTIPLE_OUTPUTS {
-        eprintln!("structured code with one output or multiple outpits");
+        debug!("structured code with one output or multiple outpits");
         debug!("vector width is {:?}", vector_width);
         let expression_depth : usize = rules_2::ast_depth(&prog);
         debug!("depth of the expression is : {:?}", expression_depth);
         match selected_ruleset_order {
             1 => {
-                rules.extend(rules_2::addition_rules(vector_width, expression_depth));
+                rules.extend(rules_2::multiplication_rules(vector_width, expression_depth));
 
             }
             2 => {
                 rules.extend(rules_2::minus_rules(vector_width,expression_depth));        
             }
             3 => {
-                rules.extend(rules_2::multiplication_rules(vector_width,expression_depth));         
+                rules.extend(rules_2::addition_rules(vector_width,expression_depth));         
             },
             4 => {
                 rules.extend(rules_2::neg_rules(vector_width,expression_depth));
@@ -101,7 +136,7 @@ pub fn run(
 
     // Stop timing after the e-graph is built
     let build_time = start_time.elapsed();
-    debug!("E-graph built in {:?}", build_time);
+    eprintln!("E-graph built in {:?}", build_time);
 
     // Print the reason for stopping to STDERR
     debug!(
@@ -120,7 +155,7 @@ pub fn run(
     let extraction_technic = 0;
     let mut best_cost: f64 = 0.0;
     let mut best_expr : RecExpr<VecLang> = RecExpr::default();
-    debug!("begining of extraction 0 .... ");
+    eprintln!("begining of extraction 0 .... ");
 
     /* we have 3 ways fot the extraction:
         1) greedy_extraction: takes decisions locally
@@ -177,7 +212,7 @@ pub fn run(
         );
         let _extract_time = start_extract_time.elapsed();
         //Stop timing after the extraction is complete
-        eprintln!("display final results");
+        debug!("display final results");
         /********************************************************************************/
     }
     // Stop timing after the extraction is complete
