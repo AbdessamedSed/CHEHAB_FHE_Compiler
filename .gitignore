@@ -46,3 +46,6 @@ thirdparty/
 
 # Jupyter checkpoints
 .ipynb_checkpoints/
+
+#CSV_results
+*.csv

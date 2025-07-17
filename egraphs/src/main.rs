@@ -237,7 +237,7 @@ fn main() {
     
         // --- BEAM SEARCH CONFIGURATION (Tunable Parameters) ---
         const BEAM_WIDTH: usize = 5;
-        const SEARCH_DEPTH: usize = 2;
+        const SEARCH_DEPTH: usize = 10;
         const BRANCHING_FACTOR: usize = 10;
     
         let min_pack_size_for_leaves = 2;

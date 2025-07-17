@@ -4,236 +4,186 @@ import subprocess
 import csv
 import re
 import statistics
+import time
+
+# --- SCRIPT CONFIGURATION ---
 
 # Specify the parent folder containing the benchmarks and build subfolders
 benchmarks_folder = "benchmarks"
 build_folder = os.path.join("build", "benchmarks")
-# to be run after with slot_count = 8 for both matrix_mul and rober_cross
+
+# --- Output Files ---
 output_csv = "results.csv"
-# vectorization_csv = "vectorization.csv"
+beam_search_csv = "beam_search_results.csv"
+
+# --- BEAM SEARCH PARAMETERS ---
+BEAM_WIDTH = 5
+SEARCH_DEPTH = 10
+BRANCHING_FACTOR = 20
+
+# --- Benchmark Configuration ---
+benchmark_folders = ["dot_product", "l2_distance", "hamming_distance"]
+# Number of times to run the entire process for each benchmark configuration
+iterations = 10
+# Number of times to retry a failed benchmark run before giving up
+MAX_RETRIES = 10
+slot_counts = [4, 8, 16, 32]
+
+# --- Static Definitions ---
 operations = ["add", "sub", "multiply_plain", "rotate_rows", "square", "multiply"]
 infos = ["benchmark"]
-additional_infos =[ "Depth", "Multplicative Depth","compile_time( ms )", "execution_time (ms)"]
+additional_infos = ["Depth", "Multiplicative Depth", "compile_time( ms )", "execution_time (ms)"]
 infos.extend(operations)
 infos.extend(additional_infos)
 
+# --- INITIALIZE CSV FILES ---
 with open(output_csv, mode='w', newline='') as file:
     writer = csv.writer(file)
     writer.writerow(infos)
 
+beam_infos = ["benchmark_id", "slot_count", "run_iteration", "beam_search_iteration", "costs"]
+with open(beam_search_csv, mode='w', newline='') as file:
+    writer = csv.writer(file)
+    writer.writerow(beam_infos)
+
+# --- 1. BUILD THE PROJECT ---
 try:
-    print("run=> cmake', '-S', '.', '-B', 'build' ")
-    result = subprocess.run(
-        ['cmake', '-S', '.', '-B', 'build'],
-        check=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        universal_newlines=True 
-    )
-    print("run=> 'cmake', '--build', 'build'")
-    result = subprocess.run(
-        ['cmake', '--build', 'build'],
-        check=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        universal_newlines=True 
-    )
+    print("--- Building Project with CMake ---")
+    print("Running=> cmake -S . -B build")
+    subprocess.run(['cmake', '-S', '.', '-B', 'build'], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
+    
+    print("Running=> cmake --build build")
+    subprocess.run(['cmake', '--build', 'build'], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
+    print("--- Build Complete ---")
 except subprocess.CalledProcessError as e:
-    stdout_message = e.stdout if e.stdout else "No stdout."
-    stderr_message = e.stderr if e.stderr else "No stderr."
+    print(f"FATAL: CMake build failed. Aborting script.")
     print(f"Command '{' '.join(e.cmd)}' failed with return code {e.returncode}")
-    print(f"Stdout:\n{stdout_message}")
-    print(f"Stderr:\n{stderr_message}")
-    exit(1) 
+    print(f"Stdout:\n{e.stdout or 'No stdout.'}")
+    print(f"Stderr:\n{e.stderr or 'No stderr.'}")
+    exit(1)
 
-# Iterate through each item in the benchmarks folder
-# "hamming_dist","poly_reg","lin_reg","l2_distance","dot_product","box_blur"
-# "box_blur","gx_kernel","gy_kernel","sobel","roberts_cross","matrix_mul"
-# benchmark_folders = ["dot_product"]
-# benchmark_folders = ["gx_kernel", "gy_kernel", "roberts_cross", "matrix_mul"]
-benchmark_folders = ["dot_product"]
-
-###############################
-### specify the number of iteration
-iterations = 1
+# --- 2. RUN BENCHMARKS ---
 for subfolder_name in benchmark_folders:
-    benchmark_path = os.path.join(benchmarks_folder, subfolder_name)
     build_path = os.path.join(build_folder, subfolder_name)
-    optimization_time = ""
-    execution_time = ""
-    depth = ""
-    multiplicative_depth = ""
-    if os.path.isdir(build_path):
-        ###############################################
-        ##### loop over specified slot_counts #########
-        slot_counts= [4]
-        window_size = 0
-        for slot_count in slot_counts :
-            print("****************************************************************")
-            print(f"*****run {subfolder_name} , for slot_count : {slot_count}******")
-            operation_stats = {
-            "add": [], "sub": [], "multiply_plain": [], "rotate_rows": [],
-            "square": [], "multiply": [], "Depth": [], "Multiplicative Depth": [],
-            "compile_time (ms)": [], "execution_time (ms)": []
-            }
-            try:
-                print(f"Generating io_file for {subfolder_name} with slot_count {slot_count}")
-                pro = subprocess.Popen(['python3', f'generate_{subfolder_name}.py', '--slot_count', str(slot_count)], cwd=build_path)
-                pro.wait()
-                if pro.returncode != 0:
-                    print(f"Error generating io_file for {subfolder_name}. Return code: {pro.returncode}")
-                    
-                    continue 
-            except FileNotFoundError:
-                print(f"generate_{subfolder_name}.py not found in {build_path}")
-                continue
-            except Exception as e:
-                print(f"An error occurred during io_file generation for {subfolder_name}: {e}")
-                continue
+    
+    if not os.path.isdir(build_path):
+        print(f"Warning: Build path not found for {subfolder_name}. Skipping.")
+        continue
+        
+    for slot_count in slot_counts:
+        print("****************************************************************")
+        print(f"***** Preparing Benchmark: {subfolder_name}, Slot Count: {slot_count} *****")
+        
+        operation_stats = {key: [] for key in operations + additional_infos}
 
-            ######################################
-            for iteration_num in range(iterations): # 
-                print(f"===> Running iteration : {iteration_num + 1}")
-                command = f"./{subfolder_name} 1 {window_size} 1 1 {slot_count}"
+        for iteration_num in range(iterations):
+            print(f"===> Starting Run: {iteration_num + 1}/{iterations}")
+
+            # *** NEW: RETRY LOOP ***
+            for attempt in range(MAX_RETRIES):
                 try:
-                    print(f"Running command in {build_path}: {command}")
+                    print(f"--- Attempt {attempt + 1}/{MAX_RETRIES} ---")
+
+                    # --- Generate IO file ---
+                    print(f"Generating io_file for {subfolder_name}...")
+                    pro = subprocess.Popen(['python3', f'generate_{subfolder_name}.py', '--slot_count', str(slot_count)], cwd=build_path)
+                    pro.wait()
+                    if pro.returncode != 0:
+                        raise Exception(f"io_file generation failed with return code {pro.returncode}")
+
+                    # --- Run Main Executable ---
+                    window_size = 0
+                    command = f"./{subfolder_name} 1 {window_size} 1 1 {slot_count} {BEAM_WIDTH} {SEARCH_DEPTH} {BRANCHING_FACTOR}"
+                    
+                    print(f"Running command: {command}")
                     result = subprocess.run(
                         command, shell=True, check=True,
-                        stdout=subprocess.PIPE,
-                        stderr=subprocess.PIPE,
-                        universal_newlines=True,
-                        cwd=build_path
+                        stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True, cwd=build_path
                     )
-                    lines = result.stdout.splitlines()
 
-                    for line in lines:
-                        if 'ms' in line: # 
-                            try:
-                                optimization_time_val = float(line.split()[0])
-                                operation_stats["compile_time (ms)"].append(optimization_time_val)
-                                print(f"Compile time found: {optimization_time_val} ms")
-                                break
-                            except (ValueError, IndexError):
-                                print(f"Could not parse compile time from line: {line}")
+                    # --- Parse Beam Search Costs ---
+                    benchmark_id = f"{subfolder_name}_{slot_count}"
+                    for line in result.stderr.splitlines():
+                        match = re.search(r"Iteration (\d+): Top \d+ costs = \[(.*?)\]", line)
+                        if match:
+                            beam_iter_num, costs_str = match.groups()
+                            with open(beam_search_csv, mode='a', newline='') as bs_file:
+                                writer = csv.writer(bs_file)
+                                writer.writerow([benchmark_id, slot_count, iteration_num + 1, beam_iter_num, f"\"[{costs_str}]\""])
 
-
+                    # --- Parse Other Stats ---
+                    for line in result.stdout.splitlines():
+                        if 'ms' in line:
+                            operation_stats["compile_time( ms )"].append(float(line.split()[0]))
+                            break
                     depth_match = re.search(r'max:\s*\((\d+),\s*(\d+)\)', result.stdout)
                     if depth_match:
-                        depth_val = int(depth_match.group(1))
-                        multiplicative_depth_val = int(depth_match.group(2))
-                        operation_stats["Depth"].append(depth_val)
-                        operation_stats["Multiplicative Depth"].append(multiplicative_depth_val)
-                        print(f"Depth: {depth_val}, Multiplicative Depth: {multiplicative_depth_val}")
-                    else:
-                        print(f"Could not find depth information in output for {subfolder_name}")
-                       
+                        operation_stats["Depth"].append(int(depth_match.group(1)))
+                        operation_stats["Multiplicative Depth"].append(int(depth_match.group(2)))
 
-                except subprocess.CalledProcessError as e:
-                    stdout_message = e.stdout if e.stdout else "No stdout."
-                    stderr_message = e.stderr if e.stderr else "No stderr."
-                    print(f"Command '{e.cmd}' in {build_path} failed with error:\n{stderr_message}")
-                    print(f"Stdout was:\n{stdout_message}")
-                    continue # 
-
-                build_path_he = os.path.join(build_path, "he")
-                try:
-                    print(f"Building FHE code in {build_path_he}")
-                    result_cmake_config = subprocess.run(['cmake', '-S', '.', '-B', 'build'],
-                        cwd=build_path_he,
-                        check=True,
-                        stdout=subprocess.PIPE,
-                        stderr=subprocess.PIPE,
-                        universal_newlines=True)
-               
-
-                    result_cmake_build = subprocess.run(['cmake', '--build', 'build'], cwd=build_path_he, universal_newlines=True,
-                        check=True,
-                        stdout=subprocess.PIPE,
-                        stderr=subprocess.PIPE)
-                 
-
-
-                    build_path_he_build = os.path.join(build_path_he, "build")
-                    fhe_command = f"./main"
-                    print(f"Running FHE command in {build_path_he_build}: {fhe_command}")
-                    result_fhe_run = subprocess.run(
-                        fhe_command, shell=True, check=True,
-                        stdout=subprocess.PIPE,
-                        stderr=subprocess.PIPE,
-                        universal_newlines=True,
-                        cwd=build_path_he_build
-                    )
-                    print("**fhe run done**")
-                    # print(f"FHE run stdout:\n{result_fhe_run.stdout}")
-                    # print(f"FHE run stderr:\n{result_fhe_run.stderr}")
-
-                    lines = result_fhe_run.stdout.splitlines()
-                    execution_time_found = False
-                    for line in lines:
+                    # --- Build and Run FHE ---
+                    build_path_he = os.path.join(build_path, "he")
+                    print("Building and running FHE code...")
+                    subprocess.run(['cmake', '-S', '.', '-B', 'build'], cwd=build_path_he, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                    subprocess.run(['cmake', '--build', 'build'], cwd=build_path_he, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                    result_fhe_run = subprocess.run(f"./main", shell=True, check=True, cwd=os.path.join(build_path_he, "build"),
+                                                    stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
+                    for line in result_fhe_run.stdout.splitlines():
                         if 'ms' in line:
-                            try:
-                                execution_time_val = float(line.split()[0])
-                                operation_stats["execution_time (ms)"].append(execution_time_val)
-                                print(f"Execution time found: {execution_time_val} ms")
-                                execution_time_found = True
-                                break
-                            except (ValueError, IndexError):
-                                print(f"Could not parse execution time from line: {line}")
-                    if not execution_time_found:
-                        print(f"Execution time (ms) not found in FHE output for {subfolder_name}")
-                        # operation_stats["execution_time (ms)"].append(None)
+                            operation_stats["execution_time (ms)"].append(float(line.split()[0]))
+                            break
 
-
-                except subprocess.CalledProcessError as e:
-                    stdout_message = e.stdout if e.stdout else "No stdout."
-                    stderr_message = e.stderr if e.stderr else "No stderr."
-                    print(f"Failed in building/running FHE code for benchmark: {subfolder_name}")
-                    print(f"Command '{' '.join(e.cmd) if isinstance(e.cmd, list) else e.cmd}' failed with return code {e.returncode}")
-                    print(f"Stdout:\n{stdout_message}")
-                    print(f"Stderr:\n{stderr_message}")
-                    continue #
-                except FileNotFoundError:
-                    print(f"CMake or FHE executable not found in {build_path_he} or {build_path_he_build}")
-                    continue
-
-                file_name = os.path.join(build_path_he, "_gen_he_fhe.cpp")
-                try:
-                    with open(file_name, "r") as file_cpp: #
+                    # --- Parse C++ File ---
+                    file_name = os.path.join(build_path_he, "_gen_he_fhe.cpp")
+                    with open(file_name, "r") as file_cpp:
                         file_content = file_cpp.read()
                         for op in operations:
-                            nb_occurrences = len(re.findall(rf'\b{op}\b', file_content)) #
-                            # print(f"==> {op}: {nb_occurrences}")
-                            operation_stats[op].append(int(nb_occurrences))
-                except FileNotFoundError:
-                    print(f"Generated C++ file not found: {file_name}")
-                    for op in operations:
-                        # 
-                        pass 
-                    continue
+                            operation_stats[op].append(len(re.findall(rf'\b{op}\b', file_content)))
+                    
+                    # If we get here, the entire process was successful.
+                    print(f"--- Attempt {attempt + 1} Succeeded. ---")
+                    break  # Exit the retry loop
 
-
-            ####################################################################
-            bench_name = f"{subfolder_name}_{slot_count}"
-            row=[bench_name]
-            print(f"\nAggregated stats for {bench_name}:")
-            for key_stat, values in operation_stats.items(): #
-                print(f"{key_stat} ==> {values}")
-                if values:
-                    numeric_values = [v for v in values if isinstance(v, (int, float))]
-                    if numeric_values:
-                        row.append(statistics.median(numeric_values))
+                except Exception as e:
+                    print(f"--- Attempt {attempt + 1} FAILED for {subfolder_name} (slot_count {slot_count}). ---")
+                    print(f"Error Type: {type(e).__name__}")
+                    
+                    # Provide more details for subprocess errors
+                    if isinstance(e, subprocess.CalledProcessError):
+                        print(f"Stderr: {e.stderr or 'N/A'}")
+                        print(f"Stdout: {e.stdout or 'N/A'}")
                     else:
-                        row.append(None) # 
-                else:
-                    row.append(None) # 
-            #####################################################################
-            #######################################################################
-            if any(val is not None for val in row[1:]): #
-                with open(output_csv, mode='a', newline='') as file_csv_out: #
-                    writer = csv.writer(file_csv_out)
-                    writer.writerow(row)
-                print(f"Appended to CSV: {row}")
-            else:
-                print(f"No data collected for {bench_name}, not writing to CSV.")
+                        print(f"Details: {e}")
 
-print(f"Script finished. Results are in {output_csv}")
+                    if attempt < MAX_RETRIES - 1:
+                        print("--- Retrying in 1 second... ---")
+                        time.sleep(1) # Small delay before retrying
+                    else:
+                        print(f"--- All {MAX_RETRIES} retries failed. Giving up on this benchmark run. ---")
+
+            else:  # This `else` belongs to the `for attempt...` loop
+                # It only runs if the loop completes without a `break`, meaning all retries failed.
+                print(f"CRITICAL: Could not complete run for {subfolder_name} (slot_count {slot_count}) after {MAX_RETRIES} attempts.")
+                continue # Skip to the next main iteration
+
+        # --- AGGREGATE AND WRITE RESULTS ---
+        bench_name_id = f"{subfolder_name}_{slot_count}"
+        row = [bench_name_id]
+        print(f"\n--- Aggregating stats for {bench_name_id} ---")
+        
+        for key_stat in infos[1:]:
+            values = operation_stats.get(key_stat, [])
+            if values:
+                row.append(statistics.median([v for v in values if isinstance(v, (int, float))]))
+            else:
+                row.append(None)
+        
+        if any(val is not None for val in row[1:]):
+            with open(output_csv, mode='a', newline='') as file_csv_out:
+                writer = csv.writer(file_csv_out)
+                writer.writerow(row)
+            print(f"Appended to {output_csv}: {row}")
+        else:
+            print(f"No data collected for {bench_name_id}, not writing to CSV.")
+
+print(f"\nScript finished. Results are in '{output_csv}' and '{beam_search_csv}'")

@@ -24,7 +24,8 @@
 #include <unordered_map>
 #include <stack>
 #include <algorithm>
-
+// 1839
+// 1843
 using namespace std;
 using std::queue;
 using std::string;
@@ -1833,13 +1834,13 @@ void Compiler::format_vectorized_code(const std::shared_ptr<ir::Func> &func, int
           sub_vector_size = maxSize;
           expr = wrapStandaloneConstants(expr, maxSize);
         }
-        std::cout << "there 2" << expr << endl;
+        // std::cout << "there 2" << expr << endl;
         auto tokens = process_vectorized_code(expr);
         std::unordered_map<std::string, std::string> dictionary = {};
-        std::cout << "expression before calling process is : " << expr << std::endl;
+        // std::cout << "expression before calling process is : " << expr << std::endl;
         process(tokens,0,dictionary,inputs_entries,inputs,inputs_types, slot_count, sub_vector_size,simplified_expression, rotation_flag, expression_to_rotate);
         // Convert new operands VecAddRot, VecMulRot, VecMinusRot
-        std::cout << "expression after calling process is : " << simplified_expression << std::endl;
+        // std::cout << "expression after calling process is : " << simplified_expression << std::endl;
 
         if (benchmark_type == STRUCTURED_WITH_ONE_OUTPUT || benchmark_type == STRUCTURED_WITH_MULTIPLE_OUTPUTS) {
           auto tokens1 = split(simplified_expression.substr(1));
