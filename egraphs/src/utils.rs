@@ -29,7 +29,7 @@ fn parse_recursive(tokens: &mut Peekable<Iter<String>>) -> Result<String, ParseE
                 let operator = operator_token.as_str();
 
                 let infix_expr = match operator {
-                    "+" | "*" => {
+                    "+" | "*" | "-" => {
                         let left_operand = match tokens.peek() {
                             Some(next_token) if next_token.as_str() == ")" => {
                                 return Err(ParseError::UnexpectedToken(

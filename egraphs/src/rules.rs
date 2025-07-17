@@ -35,7 +35,7 @@ pub fn run(
     
 
     if benchmark_type == UNSTRUCTURED_WITH_ONE_OUTPUT {   // One output, not structured
-        eprintln!("unstructured code with one output");
+        debug!("unstructured code with one output");
         // rules_1::generate_rules_unstructured_code(
         //     &mut rules
         // );
@@ -50,7 +50,7 @@ pub fn run(
                 "VecMul",
                 "VecMulRotF",
                 "mul",
-                10,
+                20,
             )
         );
 
@@ -60,7 +60,7 @@ pub fn run(
                 "VecAdd",
                 "VecAddRotF",
                 "add",
-                10,
+                20,
             )
         );
 
@@ -70,10 +70,9 @@ pub fn run(
                 "VecMinus",
                 "VecMinusRotF",
                 "sub",
-                10,
+                20,
             )
         );
-        eprintln!("after generating rules");
 
     } else if benchmark_type == STRUCTURED_WITH_ONE_OUTPUT || benchmark_type == STRUCTURED_WITH_MULTIPLE_OUTPUTS {
         debug!("structured code with one output or multiple outpits");
@@ -130,13 +129,13 @@ pub fn run(
             // it is set to false in this case
 
         let report = runner.report();
-        eprintln!("report : {:?}", report);
+        debug!("report : {:?}", report);
         /* for the rules , if the rule is expensive we add the prefix exp to its name */
 
 
     // Stop timing after the e-graph is built
     let build_time = start_time.elapsed();
-    eprintln!("E-graph built in {:?}", build_time);
+    debug!("E-graph built in {:?}", build_time);
 
     // Print the reason for stopping to STDERR
     debug!(
@@ -155,7 +154,7 @@ pub fn run(
     let extraction_technic = 0;
     let mut best_cost: f64 = 0.0;
     let mut best_expr : RecExpr<VecLang> = RecExpr::default();
-    eprintln!("begining of extraction 0 .... ");
+    debug!("begining of extraction 0 .... ");
 
     /* we have 3 ways fot the extraction:
         1) greedy_extraction: takes decisions locally
@@ -218,7 +217,7 @@ pub fn run(
     // Stop timing after the extraction is complete
     debug!("display final results");
     debug!("Final cost is {}", best_cost);
-    eprintln!("Extracted Expression : {}", best_expr);
+    debug!("Extracted Expression : {}", best_expr);
 
     // Return the extracted cost and expression
     (best_cost, best_expr)

@@ -1007,14 +1007,17 @@ string process_composed_vectors(const vector<string>& vector_elements,
 string generate_rotated_expression(string& expression_to_rotate, int number_of_rotations, string operation) {
 
   string expression_builder = "";
+  // expression_builder += "( ";
   expression_to_rotate.erase(0, 1);   // remove the first char bcz it s a space
-  
+  //  //std::cout << "number of rotations is : " << number_of_rotations << std::endl;
+   //std::cout << "operation 1 is : " << operation << std::endl;
   string op = operation == "+" ? "+" : 
             operation == "-" ? "-" : 
             operation == "*" ? "*" : " ";
- 
+   //std::cout << "op 1 is : " << op << std::endl;
+   //std::cout << "number of rotations is : " << number_of_rotations << std::endl;
   if (number_of_rotations == 1) {
-    expression_builder += " ( " + op + " " + expression_to_rotate + " ( << " + expression_to_rotate + " 1))";
+    expression_builder += " ( " + op + " " + expression_to_rotate + " ( << " + expression_to_rotate + " 1 ) )";
   } else {
     expression_builder += " ( " + op + " " + expression_to_rotate;
     for (int idx = 1 ; idx <= number_of_rotations - 1; idx++) {
@@ -1027,6 +1030,7 @@ string generate_rotated_expression(string& expression_to_rotate, int number_of_r
     }
   }
 
+   //std::cout << "expression to rotate is : " << expression_builder << std::endl;
  return expression_builder;
 
 }
@@ -1044,10 +1048,11 @@ std::pair<std::string, int> process(
     bool& rotation_flag,
     string& expression_to_rotate
 ) {
+
+    //std::cout << "hello process function" <<std::endl;
     while (index < tokens.size()) {
         if (tokens[index] == "(") {
             index++;
-            
             if (tokens[index] == "Vec"){
                 std::string vector_string = "Vec ";
                 int nested_level = 0;
@@ -1080,6 +1085,14 @@ std::pair<std::string, int> process(
                     vector_elements.push_back(element);
                   }     
                 }
+                 /* the vectors extracted from egraph don't have the same size, that's why we need 
+                to add zeros to the vectors to unifie the size */
+                if (vector_elements.size() < slot_count) {
+                  while (vector_elements.size() < slot_count) {
+                      vector_elements.push_back("0"); // Add "0" to the vector
+                  }
+                }
+
                 vector<string> updated_vector_elements = {};
                 bool if_all_vector_elems_eq0 = true ;
                 for(auto elem : vector_elements){
@@ -1088,95 +1101,119 @@ std::pair<std::string, int> process(
                   updated_vector_elements.push_back(updated_elem);
                 }
                 string result_expr = process_composed_vectors(updated_vector_elements,dictionary,inputs_entries,inputs,inputs_types,slot_count,sub_vector_size);
+                
+                //  //std::cout << "result_expr : " << result_expr << std::endl;
                 if (!rotation_flag) new_expression+=" "+result_expr;
                 if (rotation_flag) expression_to_rotate += " " + result_expr;
+                //  //std::cout << "expression to rotate after altering : " << expression_to_rotate << std::endl;
+                //  //std::cout << "new expression is : " << new_expression <<std::endl;
                 if(result_expr.substr(0,1)=="("){
                   std::string label = "c" + std::to_string(id_counter);
                   labels_map[id_counter] = label;
                   id_counter++;
                   return {label, index};
-                }else{
+                } else{
                   return {dictionary[vector_string], index};
                 }
             } else if (tokens[index] == "VecAddRotF" | tokens[index] == "VecAddRotP" |
                     tokens[index] == "VecMinusRotF" | tokens[index] == "VecMinusRotP" |
-                    tokens[index] == "VecMulRotF" | tokens[index] == "VecMulRotP"){
-                       rotation_flag = true;
-                      std::string expression_to_rotate = "";
-                      expression_to_rotate += " (";
-                      std::string operation = tokens[index];
-                      std::string op = 
-                      operation == "VecAddRotF"  | operation == "VecAddRotP" ? "+" : 
-                      operation == "VecMinusRotF" | operation == "VecMinusRotP" ? "-" : 
-                      operation == "VecMulRotF" | operation == "VecMulRotP" ? "*" : "+";
-                      expression_to_rotate += " " + op;
+                    tokens[index] == "VecMulRotF" | tokens[index] == "VecMulRotP") {
+              rotation_flag = true;
+              std::string expression_to_rotate = "";
+              expression_to_rotate += " (";
+              std::string operation = tokens[index];
+              std::string op = 
+              operation == "VecAddRotF"  | operation == "VecAddRotP" ? "+" : 
+              operation == "VecMinusRotF" | operation == "VecMinusRotP" ? "-" : 
+              operation == "VecMulRotF" | operation == "VecMulRotP" ? "*" : "+";
+              expression_to_rotate += " " + op;
+              //  //std::cout << "expression to rotate is : #" << expression_to_rotate << "#" << std::endl;
+              //  //std::cout << "new expression rot 3 is : " << new_expression << std::endl;
+              
+              index++;
+              auto [operand_1, new_index] = process(tokens, index, dictionary, inputs_entries,inputs,inputs_types, slot_count, sub_vector_size,new_expression, rotation_flag, expression_to_rotate);
+              index = new_index;
 
-                      index++;
-                      auto [operand_1, new_index] = process(tokens, index, dictionary, inputs_entries,inputs,inputs_types, slot_count, sub_vector_size,new_expression, rotation_flag, expression_to_rotate);
-                      index = new_index;
+              if (tokens[index] != ")") {
+                std::string operand_2;
+                if (tokens[index] == "(") {
+                    std::tie(operand_2, index) = process(tokens, index, dictionary, inputs_entries,inputs,inputs_types, slot_count, sub_vector_size,new_expression, rotation_flag, expression_to_rotate);
+                } else {
+                    operand_2 = tokens[index];
+                    new_expression += " " + operand_2;
+                    expression_to_rotate += " " + operand_2;
+                    //  //std::cout << "expression to rotate is : #" << expression_to_rotate << "#" << std::endl;
+                    //  //std::cout << "new expression rot 4 is : " << new_expression <<std::endl;
 
-                      if (tokens[index] != ")") {
-                        std::string operand_2;
-                        if (tokens[index] == "(") {
-                            std::tie(operand_2, index) = process(tokens, index, dictionary, inputs_entries,inputs,inputs_types, slot_count, sub_vector_size,new_expression, rotation_flag, expression_to_rotate);
-                        } else {
-                            operand_2 = tokens[index];
-                            new_expression += " " + operand_2;
-                            expression_to_rotate += " " + operand_2;
+                    index++;
+                }
+                expression_to_rotate += " )";
+                //  //std::cout << "expression to rotate is : #" << expression_to_rotate << "#" << std::endl;
+                //  //std::cout << "new expression rot 5 is : " << new_expression <<std::endl;
+                //  //std::cout << "number of rotations 1 is : " << tokens[index] << std::endl;
+                string ret = generate_rotated_expression(expression_to_rotate, /*number of rotations*/ std::stoi(tokens[index]), /*the current operatoin*/ std::string(1, expression_to_rotate[3]));
+                 //std::cout << "new expression after rotations : " << ret<< std::endl;
+                new_expression += ret;
+                
+                std::string op = (operation == "VecAdd") ? "+" : (operation == "VecMinus") ? "-" : (operation == "VecMul") ? "*" : "<<";
+                std::string label = "c" + std::to_string(id_counter);
+                labels_map[id_counter] = label;
+                 //std::cout << "label is : " << label << std::endl;
+                id_counter++;
+                index++;  // skip ")"
+                index++;  // skip the space
+                 //std::cout << "index after rotations is : " << tokens[index] << std::endl;
+                rotation_flag = false;
+                return {label, index};
+            } else {
+              /******/new_expression+=" )";
+                index++;
+                std::string label = "c" + std::to_string(id_counter);
+                 //std::cout << "label is : " << label << std::endl;
+                labels_map[id_counter] = label;
+                inputs_entries[label]=label;
+                id_counter++;
+                return {label, index};
+            }
 
-                            index++;
-                        }
-                        expression_to_rotate += " )";
-                       
-                        string ret = generate_rotated_expression(expression_to_rotate, /*number of rotations*/ std::stoi(tokens[index]), /*the current operatoin*/ std::string(1, expression_to_rotate[3]));
-                        new_expression += ret;
-                        
-                        std::string op = (operation == "VecAdd") ? "+" : (operation == "VecMinus") ? "-" : (operation == "VecMul") ? "*" : "<<";
-                        std::string label = "c" + std::to_string(id_counter);
-                        labels_map[id_counter] = label;
-                        id_counter++;
-                        index++;  // skip ")"
-                        index++;  // skip the space
-                        rotation_flag = false;
-                        return {label, index};
-                        } else {
-                          /******/new_expression+=" )";
-                            index++;
-                            std::string label = "c" + std::to_string(id_counter);
-                            labels_map[id_counter] = label;
-                            inputs_entries[label]=label;
-                            id_counter++;
-                            return {label, index};
-                        }
-          } else if(tokens[index] == "VecAdd" | tokens[index] == "+" | tokens[index] == "VecAddRotS" |
-                    tokens[index] == "VecMinus" | tokens[index] == "-" | tokens[index] == "VecMinusRotS" |
-                    tokens[index] == "VecMul" | tokens[index] == "*" | tokens[index] == "VecMulRotS") {
-          /******/new_expression+=" (";
+            }
+            /******/new_expression+=" (";
+            //  //std::cout << "new expressio 2n is : " << new_expression <<std::endl;
             std::string operation = tokens[index];
             std::string op = 
               operation == "VecAdd" | operation == "+" ? "+" :
               operation == "VecMinus"  | operation == "-" ? "-" : 
-              operation == "VecMul"  | operation == "*" ? "*":
-              operation == "VecAddRotS" ? "VecAddRot" :
-              operation == "VecMinusRotS" ? "VecMinusRot" : 
-              operation == "VecMulRotS" ? "VecMulRot" 
-              : "<<";           
+              operation == "VecMul"  | operation == "*" ? "*" 
+              : "<<";
             /*****/new_expression+=" "+op ;
+            //  //std::cout << "new expression 3 is : " << new_expression <<std::endl;
+
             index++;
             auto [operand_1, new_index] = process(tokens, index, dictionary, inputs_entries,inputs,inputs_types, slot_count, sub_vector_size,new_expression, rotation_flag, expression_to_rotate);
             index = new_index;
             if (tokens[index] != ")") {
                 std::string operand_2;
                 if (tokens[index] == "(") {
+            
                     std::tie(operand_2, index) = process(tokens, index, dictionary, inputs_entries,inputs,inputs_types, slot_count, sub_vector_size,new_expression, rotation_flag, expression_to_rotate);
                 } else {
-                    operand_2 = tokens[index];
+                    std::string label = "c" + std::to_string(id_counter);
+                    //  //std::cout << "generated label is : "  << label << std::endl;
+                    labels_map[id_counter] = label;
+                    id_counter++;
+                    // operand_2 = tokens[index];
+                    operand_2 = label;
                     new_expression+=" "+operand_2;
+                    //  //std::cout << "new expression 4 is : " << new_expression <<std::endl;
                     index++;
                 }
                 /******/new_expression+=" )";
+                //  //std::cout << "new expression 5 is : " << new_expression <<std::endl;
+
+                std::string op = (operation == "VecAdd") ? "+" : (operation == "VecMinus") ? "-" : (operation == "VecMul") ? "*" : "<<";
                 std::string label = "c" + std::to_string(id_counter);
                 labels_map[id_counter] = label;
+                //  //std::cout << "label is : " << label << std::endl;
                 id_counter++;
                 index++;
                 return {label, index};
@@ -1184,17 +1221,22 @@ std::pair<std::string, int> process(
                 /******/new_expression+=" )";
                 index++;
                 std::string label = "c" + std::to_string(id_counter);
+                //  //std::cout << "label is : " << label << std::endl;
                 labels_map[id_counter] = label;
                 id_counter++;
                 return {label, index};
             }
-          }   
-        } 
-        else if (tokens[index].rfind("c_", 0) == 0 || tokens[index].rfind("p_", 0) == 0) {
-              std::cout << "ciphertext/plaintext found : " << tokens[index] << std::endl;
-              index++;
-              std::cout << "ciphertext/plaintext found : " << tokens[index] << std::endl;
-            }
+        } else if (tokens[index] == "x") {
+          //  //std::cout << "token is x" << std::endl;
+          std::string label = "c" + std::to_string(id_counter);
+          //  //std::cout << "generated label is : "  << label << std::endl;
+          labels_map[id_counter] = label;
+          inputs_entries[label] = label;
+          id_counter++;
+          index++;
+          return {label, index};
+
+        }
     }
     return {"", index};
 }
