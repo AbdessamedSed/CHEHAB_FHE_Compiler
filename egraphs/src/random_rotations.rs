@@ -919,10 +919,10 @@ pub fn create_padding_expr(for_op: char) -> Box<Expr> {
         '*' => { // Multiplicative identity is 1
              Box::new(Expr::BinOp {
                 op: '*', // e.g. 1*1
-                left: Box::new(Expr::Var("1".to_string())),
-                right: Box::new(Expr::Var("1".to_string())),
+                left: Box::new(Expr::Var("0".to_string())),
+                right: Box::new(Expr::Var("0".to_string())),
             })
-            // Alternative if scalar 1 is allowed in Vec: Box::new(Expr::Var("1".to_string()))
+            // Alternative if scalar 1 is allowed in Vec: Box::new(Expr::Var("0".to_string()))
         }
         _ => { // Default padding for other/unknown ops
             Box::new(Expr::BinOp {

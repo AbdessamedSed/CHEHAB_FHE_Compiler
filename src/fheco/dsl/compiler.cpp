@@ -1002,38 +1002,55 @@ string process_composed_vectors(const vector<string>& vector_elements,
     }
   }
 }
+/* *******************************************************************/
+
+std::string generate_rotated_expression(std::string& expression_to_rotate, int number_of_rotations, std::string operation) {
+   
+    size_t first = expression_to_rotate.find_first_not_of(" \t\n\r");
+    if (std::string::npos == first) {
+        return ""; 
+    }
+    size_t last = expression_to_rotate.find_last_not_of(" \t\n\r");
+    std::string trimmed_expression = expression_to_rotate.substr(first, (last - first + 1));
+
+  
+    std::string expression_builder = " ( << " + trimmed_expression + " " + std::to_string(number_of_rotations) + " )";
+
+    return expression_builder;
+}
+
 
 /**********************************************************************/
-string generate_rotated_expression(string& expression_to_rotate, int number_of_rotations, string operation) {
+// string generate_rotated_expression(string& expression_to_rotate, int number_of_rotations, string operation) {
 
-  string expression_builder = "";
-  // expression_builder += "( ";
-  expression_to_rotate.erase(0, 1);   // remove the first char bcz it s a space
-  //  //std::cout << "number of rotations is : " << number_of_rotations << std::endl;
-   //std::cout << "operation 1 is : " << operation << std::endl;
-  string op = operation == "+" ? "+" : 
-            operation == "-" ? "-" : 
-            operation == "*" ? "*" : " ";
-   //std::cout << "op 1 is : " << op << std::endl;
-   //std::cout << "number of rotations is : " << number_of_rotations << std::endl;
-  if (number_of_rotations == 1) {
-    expression_builder += " ( " + op + " " + expression_to_rotate + " ( << " + expression_to_rotate + " 1 ) )";
-  } else {
-    expression_builder += " ( " + op + " " + expression_to_rotate;
-    for (int idx = 1 ; idx <= number_of_rotations - 1; idx++) {
-      expression_builder += " ( "+ op +" ( << " + expression_to_rotate + " " + std::to_string(idx) + " )";
-    }
-    expression_builder += " ( << " + expression_to_rotate + " " + std::to_string(number_of_rotations) + " )";
+//   string expression_builder = "";
+//   // expression_builder += "( ";
+//   expression_to_rotate.erase(0, 1);   // remove the first char bcz it s a space
+//   //  //std::cout << "number of rotations is : " << number_of_rotations << std::endl;
+//    //std::cout << "operation 1 is : " << operation << std::endl;
+//   string op = operation == "+" ? "+" : 
+//             operation == "-" ? "-" : 
+//             operation == "*" ? "*" : " ";
+//    //std::cout << "op 1 is : " << op << std::endl;
+//    //std::cout << "number of rotations is : " << number_of_rotations << std::endl;
+//   if (number_of_rotations == 1) {
+//     expression_builder += " ( " + op + " " + expression_to_rotate + " ( << " + expression_to_rotate + " 1 ) )";
+//   } else {
+//     expression_builder += " ( " + op + " " + expression_to_rotate;
+//     for (int idx = 1 ; idx <= number_of_rotations - 1; idx++) {
+//       expression_builder += " ( "+ op +" ( << " + expression_to_rotate + " " + std::to_string(idx) + " )";
+//     }
+//     expression_builder += " ( << " + expression_to_rotate + " " + std::to_string(number_of_rotations) + " )";
     
-    for (int idx = 1 ; idx <= number_of_rotations; idx++) {
-      expression_builder += " )";
-    }
-  }
+//     for (int idx = 1 ; idx <= number_of_rotations; idx++) {
+//       expression_builder += " )";
+//     }
+//   }
 
-   //std::cout << "expression to rotate is : " << expression_builder << std::endl;
- return expression_builder;
+//    //std::cout << "expression to rotate is : " << expression_builder << std::endl;
+//  return expression_builder;
 
-}
+// }
 /**********************************************************************/
 std::pair<std::string, int> process(
     const std::vector<std::string>& tokens,

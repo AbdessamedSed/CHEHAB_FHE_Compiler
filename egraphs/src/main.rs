@@ -237,11 +237,11 @@ fn main() {
     
         // --- BEAM SEARCH CONFIGURATION (Tunable Parameters) ---
         const BEAM_WIDTH: usize = 5;
-        const SEARCH_DEPTH: usize = 10;
-        const BRANCHING_FACTOR: usize = 20;
+        const SEARCH_DEPTH: usize = 2;
+        const BRANCHING_FACTOR: usize = 10;
     
         let min_pack_size_for_leaves = 2;
-        let max_pack_size_for_leaves = 50;
+        let max_pack_size_for_leaves = 30;
     
         let mut final_infix_str_to_parse = infix_expr_str.trim().to_string();
         final_infix_str_to_parse = final_infix_str_to_parse
