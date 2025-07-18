@@ -30,7 +30,7 @@ iterations = 10
 # The specific benchmark folder to run
 polynomial_folders = ["polynomials_coyote"] 
 # Test configurations
-depths = [5, 6, 7, 8]  # Updated as requested
+depths = [5, 6, 8]  # Updated as requested
 regimes = ["50-50","100-50", "100-100"]
 
 # --- Static Definitions ---

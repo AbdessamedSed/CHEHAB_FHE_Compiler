@@ -1,1 +1,5 @@
 benchmark,add,sub,multiply_plain,rotate_rows,square,multiply,Depth,Multiplicative Depth,compile_time( ms ),execution_time (ms)
+hamming_dist_4,6,4,0,5,0,2,6,1,21229.9,769.011
+hamming_dist_8,11,8,0,11,0,2,7,1,21777.8,1160.66
+hamming_dist_16,21,16,0,27,0,3,8,1,24381.6,2359.44
+hamming_dist_32,42,32,0,56,0,7,9,1,29275.1,4898.22

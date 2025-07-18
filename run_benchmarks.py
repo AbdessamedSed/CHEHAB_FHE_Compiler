@@ -22,9 +22,9 @@ SEARCH_DEPTH = 10
 BRANCHING_FACTOR = 20
 
 # --- Benchmark Configuration ---
-benchmark_folders = ["dot_product", "l2_distance", "hamming_distance"]
+benchmark_folders = ["hamming_dist"]
 # Number of times to run the entire process for each benchmark configuration
-iterations = 10
+iterations = 5
 # Number of times to retry a failed benchmark run before giving up
 MAX_RETRIES = 10
 slot_counts = [4, 8, 16, 32]
